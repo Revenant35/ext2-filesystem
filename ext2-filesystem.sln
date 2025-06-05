@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Filesystem", "Filesystem\Filesystem.csproj", "{7C71DFB4-26FD-494A-BD55-C1BE4AC251AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilesystemTests", "FilesystemTests\FilesystemTests.csproj", "{7E7520DE-C082-40DC-8322-5120F0232BEA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilesystemConsole", "FilesystemConsole\FilesystemConsole.csproj", "{72A75072-2E33-46D1-9795-C567F253A199}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7C71DFB4-26FD-494A-BD55-C1BE4AC251AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C71DFB4-26FD-494A-BD55-C1BE4AC251AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C71DFB4-26FD-494A-BD55-C1BE4AC251AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C71DFB4-26FD-494A-BD55-C1BE4AC251AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E7520DE-C082-40DC-8322-5120F0232BEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E7520DE-C082-40DC-8322-5120F0232BEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E7520DE-C082-40DC-8322-5120F0232BEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E7520DE-C082-40DC-8322-5120F0232BEA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72A75072-2E33-46D1-9795-C567F253A199}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72A75072-2E33-46D1-9795-C567F253A199}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72A75072-2E33-46D1-9795-C567F253A199}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72A75072-2E33-46D1-9795-C567F253A199}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
