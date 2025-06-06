@@ -24,7 +24,7 @@ public class InodeDirectorySerializationTests
         // Act
         using (var writer = new BinaryWriter(ms, Encoding.UTF8, leaveOpen: true))
         {
-            writer.WriteInodeDirectory(directory);
+            writer.Write(directory);
         }
 
         ms.Position = 0;
@@ -103,7 +103,7 @@ public class InodeDirectorySerializationTests
         // Act
         using (var writer = new BinaryWriter(ms, Encoding.UTF8, leaveOpen: true))
         {
-            writer.WriteInodeDirectory(original);
+            writer.Write(original);
         }
 
         ms.Position = 0;

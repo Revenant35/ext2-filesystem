@@ -59,7 +59,7 @@ public static class InodeSerialization
         };
     }
 
-    public static void WriteInode(this BinaryWriter writer, Inode inode)
+    public static void Write(this BinaryWriter writer, Inode inode)
     {
         var typeAndPermissions = (ushort)((ushort)inode.Type | (ushort)inode.Permissions);
         writer.Write(typeAndPermissions);

@@ -14,8 +14,8 @@ public static class SuperblockSerialization
         var unallocatedBlockCount = reader.ReadUInt32();
         var unallocatedInodeCount = reader.ReadUInt32();
         var startingBlockNumber = reader.ReadUInt32();
-        var blockSize = 1024 << Convert.ToInt32(reader.ReadInt32());
-        var fragmentSize = 1024 << Convert.ToInt32(reader.ReadInt32());
+        var blockSize = 1024u << Convert.ToInt32(reader.ReadInt32());
+        var fragmentSize = 1024u << Convert.ToInt32(reader.ReadInt32());
         var blocksPerGroup = reader.ReadUInt32();
         var fragmentsPerGroup = reader.ReadUInt32();
         var inodesPerGroup = reader.ReadUInt32();
@@ -54,6 +54,8 @@ public static class SuperblockSerialization
         var reservedUserId = reader.ReadUInt16();
         var reservedGroupId = reader.ReadUInt16();
 
+        reader.ReadBytes(940); // (unused)
+
         return new Superblock
         {
             InodeCount = inodeCount,
@@ -83,7 +85,7 @@ public static class SuperblockSerialization
         };
     }
     
-    public static void WriteSuperblock(this BinaryWriter writer, Superblock superblock)
+    public static void Write(this BinaryWriter writer, Superblock superblock)
     {
         writer.Write(superblock.InodeCount);
         writer.Write(superblock.BlockCount);
@@ -91,8 +93,8 @@ public static class SuperblockSerialization
         writer.Write(superblock.UnallocatedBlockCount);
         writer.Write(superblock.UnallocatedInodeCount);
         writer.Write(superblock.StartingBlockNumber);
-        writer.Write(int.Log2(superblock.BlockSize) - 10);
-        writer.Write(int.Log2(superblock.FragmentSize) - 10);
+        writer.Write(uint.Log2(superblock.BlockSize) - 10);
+        writer.Write(uint.Log2(superblock.FragmentSize) - 10);
         writer.Write(superblock.BlocksPerGroup);
         writer.Write(superblock.FragmentsPerGroup);
         writer.Write(superblock.InodesPerGroup);
@@ -110,5 +112,6 @@ public static class SuperblockSerialization
         writer.Write(superblock.MajorVersion);
         writer.Write(superblock.ReservedUserId);
         writer.Write(superblock.ReservedGroupId);
+        writer.Write(new byte[940]); // (unused)
     }
 }

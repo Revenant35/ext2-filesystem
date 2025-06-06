@@ -23,7 +23,7 @@ public static class InodeDirectorySerialization
         };
     }
  
-    public static void WriteInodeDirectory(this BinaryWriter writer, InodeDirectory inodeDirectory)
+    public static void Write(this BinaryWriter writer, InodeDirectory inodeDirectory)
     {
         var nameBytes = System.Text.Encoding.UTF8.GetBytes(inodeDirectory.Name);
         writer.Write(inodeDirectory.Inode);

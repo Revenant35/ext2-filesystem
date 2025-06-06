@@ -26,7 +26,7 @@ public static class BlockGroupDescriptorSerialization
         };
     }
 
-    public static void WriteBlockGroupDescriptor(this BinaryWriter writer, BlockGroupDescriptor blockGroupDescriptor)
+    public static void Write(this BinaryWriter writer, BlockGroupDescriptor blockGroupDescriptor)
     {
         writer.Write(blockGroupDescriptor.BlockUsageBitmapBlockAddress);
         writer.Write(blockGroupDescriptor.InodeUsageBitmapBlockAddress);
@@ -34,9 +34,6 @@ public static class BlockGroupDescriptorSerialization
         writer.Write(blockGroupDescriptor.UnallocatedBlocksInGroup);
         writer.Write(blockGroupDescriptor.UnallocatedInodesInGroup);
         writer.Write(blockGroupDescriptor.DirectoriesInGroup);
-        for (var i = 0; i < 14; i++)
-        {
-            writer.Write((byte)0x0);
-        }
+        writer.Write(new byte[14]);
     }
 }

@@ -39,7 +39,7 @@ public class InodeSerializationTests
         // Act
         using (var writer = new BinaryWriter(ms, System.Text.Encoding.Default, leaveOpen: true))
         {
-            writer.WriteInode(inode);
+            writer.Write(inode);
         }
 
         ms.Position = 0;

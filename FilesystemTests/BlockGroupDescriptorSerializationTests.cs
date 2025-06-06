@@ -71,7 +71,7 @@ public class BlockGroupDescriptorSerializationTests
         // Act
         using (var writer = new BinaryWriter(ms, System.Text.Encoding.Default, leaveOpen: true))
         {
-            writer.WriteBlockGroupDescriptor(input);
+            writer.Write(input);
         }
 
         ms.Position = 0;

@@ -62,7 +62,7 @@ public class SuperblockSerializationTests
     public void Read_ShouldThrow_WhenSignatureInvalid()
     {
         var superblock = CreateValidSuperblock();
-        _writer.WriteSuperblock(superblock);
+        _writer.Write(superblock);
 
         _stream.Position = 56;
         _stream.WriteByte(0x00);
@@ -79,7 +79,7 @@ public class SuperblockSerializationTests
     {
         var superblock = CreateValidSuperblock();
 
-        _writer.WriteSuperblock(superblock);
+        _writer.Write(superblock);
 
         _stream.Position = 58;
         _stream.Write(BitConverter.GetBytes(state), 0, 2);
@@ -95,7 +95,7 @@ public class SuperblockSerializationTests
     {
         var superblock = CreateValidSuperblock();
 
-        _writer.WriteSuperblock(superblock);
+        _writer.Write(superblock);
 
         _stream.Position = 60;
         _stream.Write(BitConverter.GetBytes(value), 0, 2);
@@ -110,7 +110,7 @@ public class SuperblockSerializationTests
     {
         var superblock = CreateValidSuperblock();
 
-        _writer.WriteSuperblock(superblock);
+        _writer.Write(superblock);
 
         _stream.Position = 72;
         _stream.Write(BitConverter.GetBytes(5u), 0, 4); // Invalid OS ID
@@ -125,7 +125,7 @@ public class SuperblockSerializationTests
     {
         var original = CreateValidSuperblock();
 
-        _writer.WriteSuperblock(original);
+        _writer.Write(original);
         _stream.Position = 0;
 
         var result = _reader.ReadSuperblock();
