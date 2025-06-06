@@ -1,18 +1,18 @@
 ﻿namespace FilesystemTests;
 
-using Filesystem;
 using Filesystem.Exceptions;
 using Filesystem.Models;
+using Filesystem.Serializers;
 using NUnit.Framework;
 using System;
 using System.IO;
 using System.Text;
 
-public class SuperblockReaderTests
+public class SuperblockSerializationTests
 {
     private MemoryStream _stream;
-    private SuperblockWriter _writer;
-    private SuperblockReader _reader;
+    private BinaryWriter _writer;
+    private BinaryReader _reader;
     
     private Superblock CreateValidSuperblock() => new()
     {
@@ -46,13 +46,15 @@ public class SuperblockReaderTests
     public void Setup()
     {
         _stream = new MemoryStream();
-        _writer = new SuperblockWriter(_stream, Encoding.Default, true);
-        _reader = new SuperblockReader(_stream, Encoding.Default, true);
+        _writer = new BinaryWriter(_stream, Encoding.Default, true);
+        _reader = new BinaryReader(_stream, Encoding.Default, true);
     }
 
     [TearDown]
     public void TearDown()
     {
+        _writer.Dispose();
+        _reader.Dispose();
         _stream.Dispose();
     }
 
@@ -60,14 +62,14 @@ public class SuperblockReaderTests
     public void Read_ShouldThrow_WhenSignatureInvalid()
     {
         var superblock = CreateValidSuperblock();
-        _writer.Write(superblock);
+        _writer.WriteSuperblock(superblock);
 
         _stream.Position = 56;
         _stream.WriteByte(0x00);
         _stream.WriteByte(0x00);
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.Read());
+        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid ext2 signature"));
     }
 
@@ -77,13 +79,13 @@ public class SuperblockReaderTests
     {
         var superblock = CreateValidSuperblock();
 
-        _writer.Write(superblock);
+        _writer.WriteSuperblock(superblock);
 
         _stream.Position = 58;
         _stream.Write(BitConverter.GetBytes(state), 0, 2);
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.Read());
+        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid file system state"));
     }
 
@@ -93,13 +95,13 @@ public class SuperblockReaderTests
     {
         var superblock = CreateValidSuperblock();
 
-        _writer.Write(superblock);
+        _writer.WriteSuperblock(superblock);
 
         _stream.Position = 60;
         _stream.Write(BitConverter.GetBytes(value), 0, 2);
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.Read());
+        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid error handling"));
     }
 
@@ -108,13 +110,13 @@ public class SuperblockReaderTests
     {
         var superblock = CreateValidSuperblock();
 
-        _writer.Write(superblock);
+        _writer.WriteSuperblock(superblock);
 
         _stream.Position = 72;
         _stream.Write(BitConverter.GetBytes(5u), 0, 4); // Invalid OS ID
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.Read());
+        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid operating system ID"));
     }
 
@@ -123,10 +125,10 @@ public class SuperblockReaderTests
     {
         var original = CreateValidSuperblock();
 
-        _writer.Write(original);
+        _writer.WriteSuperblock(original);
         _stream.Position = 0;
 
-        var result = _reader.Read();
+        var result = _reader.ReadSuperblock();
 
         Assert.Multiple(() =>
         {
