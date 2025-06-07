@@ -12,23 +12,20 @@ public static class InodeSerialization
         var permissions = (InodePermissions)(typeAndPermissions & 0x0FFF);
         var userID = reader.ReadUInt16();
         var sizeInBytes = reader.ReadUInt32();
-        var lastAccessed = DateTimeOffset.FromUnixTimeSeconds(reader.ReadUInt32());
-        var createdAt = DateTimeOffset.FromUnixTimeSeconds(reader.ReadUInt32());
-        var lastModified = DateTimeOffset.FromUnixTimeSeconds(reader.ReadUInt32());
-        var deletedAt = DateTimeOffset.FromUnixTimeSeconds(reader.ReadUInt32());
+        var lastAccessed = reader.ReadUInt32();
+        var createdAt = reader.ReadUInt32();
+        var lastModified = reader.ReadUInt32();
+        var deletedAt = reader.ReadUInt32();
         var groupID = reader.ReadUInt16();
         var hardLinkCount = reader.ReadUInt16();
         var diskSectorCount = reader.ReadUInt32();
         var flags = (InodeFlags)reader.ReadUInt32();
         reader.ReadUInt32(); // TODO: OperatingSystemSpecificValues #1
-        var blockPointers = new uint[12];
-        for (var i = 0; i < 12; i++)
+        var blockPointers = new uint[15];
+        for (var i = 0; i < 15; i++)
         {
             blockPointers[i] = reader.ReadUInt32();
         }
-        var singlyIndirectBlockPointer = reader.ReadUInt32();
-        var doublyIndirectBlockPointer = reader.ReadUInt32();
-        var triplyIndirectBlockPointer = reader.ReadUInt32();
         reader.ReadUInt32(); // (reserved)
         reader.ReadUInt32(); // (reserved)
         var generationNumber = reader.ReadUInt32();
@@ -41,18 +38,15 @@ public static class InodeSerialization
             Permissions = permissions,
             UserID = userID,
             SizeBytes = sizeInBytes,
-            LastAccessed = lastAccessed,
-            CreatedAt = createdAt,
-            LastModified = lastModified,
-            DeletedAt = deletedAt,
+            LastAccessed = (lastAccessed != 0) ? DateTimeOffset.FromUnixTimeSeconds(lastAccessed) : null,
+            CreatedAt = DateTimeOffset.FromUnixTimeSeconds(createdAt),
+            LastModified = (lastModified != 0) ? DateTimeOffset.FromUnixTimeSeconds(lastModified) : null,
+            DeletedAt = (deletedAt != 0) ? DateTimeOffset.FromUnixTimeSeconds(deletedAt) : null,
             GroupID = groupID,
             HardLinkCount = hardLinkCount,
             DiskSectorCount = diskSectorCount,
             Flags = flags,
             BlockPointers = blockPointers,
-            SinglyIndirectBlockPointer = singlyIndirectBlockPointer,
-            DoublyIndirectBlockPointer = doublyIndirectBlockPointer,
-            TriplyIndirectBlockPointer = triplyIndirectBlockPointer,
             GenerationNumber = generationNumber,
             FragmentBlockAddress = fragmentBlockAddress,
             OperatingSystemSpecificValues = [],
@@ -65,10 +59,10 @@ public static class InodeSerialization
         writer.Write(typeAndPermissions);
         writer.Write(inode.UserID);
         writer.Write(inode.SizeBytes);
-        writer.Write(Convert.ToUInt32(inode.LastAccessed.ToUnixTimeSeconds()));
+        writer.Write((inode.LastAccessed != null) ? Convert.ToUInt32(inode.LastAccessed.Value.ToUnixTimeSeconds()) : 0);
         writer.Write(Convert.ToUInt32(inode.CreatedAt.ToUnixTimeSeconds()));
-        writer.Write(Convert.ToUInt32(inode.LastModified.ToUnixTimeSeconds()));
-        writer.Write(Convert.ToUInt32(inode.DeletedAt.ToUnixTimeSeconds()));
+        writer.Write((inode.LastModified != null) ? Convert.ToUInt32(inode.LastModified.Value.ToUnixTimeSeconds()) : 0);
+        writer.Write((inode.DeletedAt != null) ? Convert.ToUInt32(inode.DeletedAt.Value.ToUnixTimeSeconds()) : 0);
         writer.Write(inode.GroupID);
         writer.Write(inode.HardLinkCount);
         writer.Write(inode.DiskSectorCount);
@@ -78,10 +72,7 @@ public static class InodeSerialization
         {
             writer.Write(blockPointer);
         }
-        
-        writer.Write(inode.SinglyIndirectBlockPointer);
-        writer.Write(inode.DoublyIndirectBlockPointer);
-        writer.Write(inode.TriplyIndirectBlockPointer);
+
         writer.Write((uint)0x00); // (reserved)
         writer.Write((uint)0x00); // (reserved)
         writer.Write(inode.GenerationNumber);

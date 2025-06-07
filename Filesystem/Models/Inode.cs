@@ -5,46 +5,28 @@ public struct Inode
 {
     public const uint Size = 128;
 
-    public InodeType Type;
-    public InodePermissions Permissions;
-    public ushort UserID;
-    public uint SizeBytes;
-    public DateTimeOffset LastAccessed;
-    public DateTimeOffset CreatedAt;
-    public DateTimeOffset LastModified;
-    public DateTimeOffset DeletedAt;
-    public ushort GroupID;
-    public ushort HardLinkCount;
-    public uint DiskSectorCount;
-    public InodeFlags Flags;
-    public uint[] BlockPointers;
-    public uint SinglyIndirectBlockPointer;
-    public uint DoublyIndirectBlockPointer;
-    public uint TriplyIndirectBlockPointer;
-    public uint GenerationNumber;
-    public uint FragmentBlockAddress;
-    public byte[] OperatingSystemSpecificValues; // TODO: This weirdness
+    public InodeType Type = InodeType.File;
+    public InodePermissions Permissions = InodePermissions.None;
+    public ushort UserID = 0;
+    public uint SizeBytes = 0;
+    public DateTimeOffset? LastAccessed = null;
+    public DateTimeOffset CreatedAt = DateTimeOffset.Now;
+    public DateTimeOffset? LastModified = null;
+    public DateTimeOffset? DeletedAt = null;
+    public ushort GroupID = 0;
+    public ushort HardLinkCount = 0;
+    public uint DiskSectorCount = 0;
+    public InodeFlags Flags = InodeFlags.None;
+    public uint[] BlockPointers = new uint[15];
+    public uint GenerationNumber = 0;
+    public uint FragmentBlockAddress = 0;
+    public byte[] OperatingSystemSpecificValues = new byte[16]; // TODO: This weirdness
 
-    public static readonly Inode Default = new Inode
+    public Inode()
     {
-        Type = InodeType.FIFO,
-        Permissions = InodePermissions.None,
-        UserID = 0,
-        SizeBytes = 0,
-        LastAccessed = DateTimeOffset.Now,
-        CreatedAt = DateTimeOffset.Now,
-        LastModified = DateTimeOffset.Now,
-        DeletedAt = DateTimeOffset.Now,
-        GroupID = 0,
-        HardLinkCount = 0,
-        DiskSectorCount = 0,
-        Flags = InodeFlags.None,
-        BlockPointers = new uint[12],
-        SinglyIndirectBlockPointer = 0,
-        DoublyIndirectBlockPointer = 0,
-        TriplyIndirectBlockPointer = 0,
-        GenerationNumber = 0,
-        FragmentBlockAddress = 0,
-        OperatingSystemSpecificValues = [],
-    };
+        for (var i = 0; i < BlockPointers.Length; i++)
+        {
+            BlockPointers[i] = 0;
+        }
+    }
 }

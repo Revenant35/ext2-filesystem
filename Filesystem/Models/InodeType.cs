@@ -7,7 +7,7 @@ public enum InodeType : ushort
     CharacterDevice = 0x2000,
     Directory = 0x4000,
     BlockDevice = 0x6000,
-    RegularFile = 0x8000,
+    File = 0x8000,
     SymbolicLink = 0xA000,
     UnixSocket = 0xC000,
 }
