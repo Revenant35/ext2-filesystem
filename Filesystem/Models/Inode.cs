@@ -3,6 +3,8 @@ namespace Filesystem.Models;
 // https://wiki.osdev.org/Ext2#Inode_Data_Structure
 public struct Inode
 {
+    public const uint Size = 128;
+
     public InodeType Type;
     public InodePermissions Permissions;
     public ushort UserID;
@@ -15,7 +17,7 @@ public struct Inode
     public ushort HardLinkCount;
     public uint DiskSectorCount;
     public InodeFlags Flags;
-    public uint[] BlockPointers; // TODO: uint -> Block
+    public uint[] BlockPointers;
     public uint SinglyIndirectBlockPointer;
     public uint DoublyIndirectBlockPointer;
     public uint TriplyIndirectBlockPointer;
