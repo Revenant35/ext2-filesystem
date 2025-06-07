@@ -7,41 +7,67 @@ namespace FilesystemTests;
 public class InodeSerializationTests
 {
     [Test]
-    public void InodeSerializer_Should_ReadAndWriteCorrectData()
+    public void InodeSerializer_Should_ReadAndWriteCorrectData_WithNonDefaultValues()
     {
         // Arrange
-        var inode = new Inode();
+        var originalInode = new Inode
+        {
+            Type = InodeType.Directory,
+            Permissions = InodePermissions.UserRead | InodePermissions.UserWrite | InodePermissions.UserExecute |
+                          InodePermissions.GroupRead | InodePermissions.GroupExecute |
+                          InodePermissions.OtherRead | InodePermissions.OtherExecute,
+            UserID = 1001,
+            SizeBytes = 4096,
+            LastAccessed = DateTimeOffset.UtcNow.AddHours(-1).ToUniversalTime(),
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-1).ToUniversalTime(),
+            LastModified = DateTimeOffset.UtcNow.AddMinutes(-30).ToUniversalTime(),
+            DeletedAt = null,
+            GroupID = 2002,
+            HardLinkCount = 1,
+            DiskSectorCount = 8,
+            Flags = InodeFlags.ImmutableFile | InodeFlags.AppendOnly,
+            BlockPointers = Enumerable.Range(1, 15).Select(i => (uint)i * 100).ToArray(),
+            GenerationNumber = 0x12345678,
+            FileACLBlock = 1000,
+            DirectoryACLBlock = 2000,
+            FragmentBlockAddress = 3000,
+            OperatingSystemSpecificValues = [..Enumerable.Range(0, 4).Select(i => (byte)(i + 0x40)), ..Enumerable.Range(0, 12).Select(i => (byte)(i + 0x40))]
+        };
+
         using var ms = new MemoryStream();
 
         // Act
         using (var writer = new BinaryWriter(ms, System.Text.Encoding.Default, leaveOpen: true))
         {
-            writer.Write(inode);
+            writer.Write(originalInode);
         }
 
         ms.Position = 0;
 
         // Assert
         using var reader = new BinaryReader(ms);
-        var result = reader.ReadInode();
+        var deserializedInode = reader.ReadInode();
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Type, Is.EqualTo(inode.Type));
-            Assert.That(result.Permissions, Is.EqualTo(inode.Permissions));
-            Assert.That(result.UserID, Is.EqualTo(inode.UserID));
-            Assert.That(result.SizeBytes, Is.EqualTo(inode.SizeBytes));
-            Assert.That(result.LastAccessed?.ToUnixTimeSeconds(), Is.EqualTo(inode.LastAccessed?.ToUnixTimeSeconds()));
-            Assert.That(result.CreatedAt.ToUnixTimeSeconds(), Is.EqualTo(inode.CreatedAt.ToUnixTimeSeconds()));
-            Assert.That(result.LastModified?.ToUnixTimeSeconds(), Is.EqualTo(inode.LastModified?.ToUnixTimeSeconds()));
-            Assert.That(result.DeletedAt?.ToUnixTimeSeconds(), Is.EqualTo(inode.DeletedAt?.ToUnixTimeSeconds()));
-            Assert.That(result.GroupID, Is.EqualTo(inode.GroupID));
-            Assert.That(result.HardLinkCount, Is.EqualTo(inode.HardLinkCount));
-            Assert.That(result.DiskSectorCount, Is.EqualTo(inode.DiskSectorCount));
-            Assert.That(result.Flags, Is.EqualTo(inode.Flags));
-            Assert.That(result.BlockPointers, Is.EquivalentTo(inode.BlockPointers));
-            Assert.That(result.GenerationNumber, Is.EqualTo(inode.GenerationNumber));
-            Assert.That(result.FragmentBlockAddress, Is.EqualTo(inode.FragmentBlockAddress));
+            Assert.That(deserializedInode.Type, Is.EqualTo(originalInode.Type));
+            Assert.That(deserializedInode.Permissions, Is.EqualTo(originalInode.Permissions));
+            Assert.That(deserializedInode.UserID, Is.EqualTo(originalInode.UserID));
+            Assert.That(deserializedInode.SizeBytes, Is.EqualTo(originalInode.SizeBytes));
+            Assert.That(deserializedInode.LastAccessed?.ToUnixTimeSeconds(), Is.EqualTo(originalInode.LastAccessed?.ToUnixTimeSeconds()));
+            Assert.That(deserializedInode.CreatedAt.ToUnixTimeSeconds(), Is.EqualTo(originalInode.CreatedAt.ToUnixTimeSeconds()));
+            Assert.That(deserializedInode.LastModified?.ToUnixTimeSeconds(), Is.EqualTo(originalInode.LastModified?.ToUnixTimeSeconds()));
+            Assert.That(deserializedInode.DeletedAt?.ToUnixTimeSeconds(), Is.EqualTo(originalInode.DeletedAt?.ToUnixTimeSeconds()));
+            Assert.That(deserializedInode.GroupID, Is.EqualTo(originalInode.GroupID));
+            Assert.That(deserializedInode.HardLinkCount, Is.EqualTo(originalInode.HardLinkCount));
+            Assert.That(deserializedInode.DiskSectorCount, Is.EqualTo(originalInode.DiskSectorCount));
+            Assert.That(deserializedInode.Flags, Is.EqualTo(originalInode.Flags));
+            Assert.That(deserializedInode.BlockPointers, Is.EqualTo(originalInode.BlockPointers));
+            Assert.That(deserializedInode.GenerationNumber, Is.EqualTo(originalInode.GenerationNumber));
+            Assert.That(deserializedInode.FileACLBlock, Is.EqualTo(originalInode.FileACLBlock));
+            Assert.That(deserializedInode.DirectoryACLBlock, Is.EqualTo(originalInode.DirectoryACLBlock));
+            Assert.That(deserializedInode.FragmentBlockAddress, Is.EqualTo(originalInode.FragmentBlockAddress));
+            Assert.That(deserializedInode.OperatingSystemSpecificValues, Is.EqualTo(originalInode.OperatingSystemSpecificValues));
         });
     }
 }

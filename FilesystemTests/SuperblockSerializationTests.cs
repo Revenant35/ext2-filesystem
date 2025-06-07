@@ -1,4 +1,4 @@
-﻿namespace FilesystemTests;
+namespace FilesystemTests;
 
 using Filesystem.Exceptions;
 using Filesystem.Models;
@@ -10,6 +10,12 @@ using System.Text;
 
 public class SuperblockSerializationTests
 {
+    // Superblock field offsets (in bytes from the start of the superblock structure)
+    private const int SignatureOffset = 56;            // s_magic (EXT2_SUPER_MAGIC)
+    private const int FileSystemStateOffset = 58;    // s_state
+    private const int ErrorHandlingOffset = 60;      // s_errors
+    private const int CreatorOSOffset = 72;            // s_creator_os
+
     private MemoryStream _stream;
     private BinaryWriter _writer;
     private BinaryReader _reader;
@@ -64,9 +70,9 @@ public class SuperblockSerializationTests
         var superblock = CreateValidSuperblock();
         _writer.Write(superblock);
 
-        _stream.Position = 56;
-        _stream.WriteByte(0x00);
-        _stream.WriteByte(0x00);
+        _stream.Position = SignatureOffset;
+        _stream.WriteByte(0x00); // Corrupt the signature
+        _stream.WriteByte(0x00); // Corrupt the signature
         _stream.Position = 0;
 
         var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
@@ -81,8 +87,8 @@ public class SuperblockSerializationTests
 
         _writer.Write(superblock);
 
-        _stream.Position = 58;
-        _stream.Write(BitConverter.GetBytes(state), 0, 2);
+        _stream.Position = FileSystemStateOffset;
+        _stream.Write(BitConverter.GetBytes(state), 0, 2); // Set invalid file system state
         _stream.Position = 0;
 
         var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
@@ -97,8 +103,8 @@ public class SuperblockSerializationTests
 
         _writer.Write(superblock);
 
-        _stream.Position = 60;
-        _stream.Write(BitConverter.GetBytes(value), 0, 2);
+        _stream.Position = ErrorHandlingOffset;
+        _stream.Write(BitConverter.GetBytes(value), 0, 2); // Set invalid error handling value
         _stream.Position = 0;
 
         var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
@@ -112,8 +118,8 @@ public class SuperblockSerializationTests
 
         _writer.Write(superblock);
 
-        _stream.Position = 72;
-        _stream.Write(BitConverter.GetBytes(5u), 0, 4); // Invalid OS ID
+        _stream.Position = CreatorOSOffset;
+        _stream.Write(BitConverter.GetBytes(5u), 0, 4); // Set invalid OS ID (5 is not defined in OperatingSystemID enum)
         _stream.Position = 0;
 
         var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());

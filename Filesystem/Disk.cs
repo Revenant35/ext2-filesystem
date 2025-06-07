@@ -8,7 +8,7 @@ public class Disk : IDisposable, IAsyncDisposable
 {
     public const long SuperblockOffset = 1024;
 
-    private readonly Stream _stream;
+    public readonly Stream Stream;
     private readonly Superblock _superblock;
     private readonly BlockGroupDescriptor[] _blockGroupDescriptors;
 
@@ -24,14 +24,14 @@ public class Disk : IDisposable, IAsyncDisposable
 
     public Disk(Stream stream)
     {
-        _stream = stream;
+        Stream = stream;
 
-        _stream.Position = SuperblockOffset;
-        using var reader = new BinaryReader(_stream, Encoding.UTF8, leaveOpen: true);
+        Stream.Position = SuperblockOffset;
+        using var reader = new BinaryReader(Stream, Encoding.UTF8, leaveOpen: true);
         _superblock = reader.ReadSuperblock();
 
         _blockGroupDescriptors = new BlockGroupDescriptor[BlockGroupCount];
-        _stream.Position = BlockGroupDescriptorTableOffset;
+        Stream.Position = BlockGroupDescriptorTableOffset;
         for (uint i = 0; i < BlockGroupCount; i++)
         {
             _blockGroupDescriptors[i] = reader.ReadBlockGroupDescriptor();
@@ -42,8 +42,8 @@ public class Disk : IDisposable, IAsyncDisposable
     {
         var buffer = new byte[BlockSize];
         var offset = blockNumber * BlockSize;
-        _stream.Seek(offset, SeekOrigin.Begin);
-        _stream.ReadExactly(buffer, 0, (int)BlockSize);
+        Stream.Seek(offset, SeekOrigin.Begin);
+        Stream.ReadExactly(buffer, 0, (int)BlockSize);
         return buffer;
     }
 
@@ -53,8 +53,8 @@ public class Disk : IDisposable, IAsyncDisposable
             throw new ArgumentException($"Data must be exactly {BlockSize} bytes long.", nameof(data));
 
         var offset = blockNumber * BlockSize;
-        _stream.Seek(offset, SeekOrigin.Begin);
-        _stream.Write(data, 0, (int)BlockSize);
+        Stream.Seek(offset, SeekOrigin.Begin);
+        Stream.Write(data, 0, (int)BlockSize);
     }
 
     public Bitmap ReadBlockBitmap(BlockGroupDescriptor descriptor) =>
@@ -84,9 +84,9 @@ public class Disk : IDisposable, IAsyncDisposable
 
         var inodeTableOffset = inodeTableBlock * BlockSize;
 
-        _stream.Position = inodeTableOffset + localIndex * Inode.Size;
+        Stream.Position = inodeTableOffset + localIndex * Inode.Size;
 
-        using var reader = new BinaryReader(_stream, Encoding.UTF8, leaveOpen: true);
+        using var reader = new BinaryReader(Stream, Encoding.UTF8, leaveOpen: true);
         return reader.ReadInode();
     }
 
@@ -95,8 +95,8 @@ public class Disk : IDisposable, IAsyncDisposable
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(index);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(index, InodeCount);
 
-        _stream.Position = GetInodeOffset(index);
-        using var writer = new BinaryWriter(_stream, Encoding.UTF8, leaveOpen: true);
+        Stream.Position = GetInodeOffset(index);
+        using var writer = new BinaryWriter(Stream, Encoding.UTF8, leaveOpen: true);
         writer.Write(inode);
     }
 
@@ -119,13 +119,13 @@ public class Disk : IDisposable, IAsyncDisposable
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        _stream.Dispose();
+        Stream.Dispose();
     }
 
     public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
-        await _stream.DisposeAsync();
+        await Stream.DisposeAsync();
     }
 
     #endregion

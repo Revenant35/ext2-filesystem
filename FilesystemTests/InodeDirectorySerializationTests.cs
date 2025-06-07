@@ -16,7 +16,6 @@ public class InodeDirectorySerializationTests
             Inode = 42,
             Name = "home",
             Type = InodeDirectoryType.Directory,
-            EntrySize = 555,
         };
 
         using var ms = new MemoryStream();
@@ -36,88 +35,131 @@ public class InodeDirectorySerializationTests
         var nameLen = reader.ReadByte();
         var type = (InodeDirectoryType)reader.ReadByte();
         var name = Encoding.UTF8.GetString(reader.ReadBytes(nameLen));
+        
+        var expectedNameActualLength = (byte)directory.Name.Length;
+        var minLengthWithoutPadding = 8 + expectedNameActualLength;
+        var expectedRecLen = (ushort)((minLengthWithoutPadding + 3) & ~3);
+        var expectedPaddingBytesCount = expectedRecLen - minLengthWithoutPadding;
 
         Assert.Multiple(() =>
         {
             Assert.That(inode, Is.EqualTo(directory.Inode));
-            Assert.That(recLen, Is.EqualTo(directory.EntrySize));
-            Assert.That(nameLen, Is.EqualTo(directory.Name.Length));
-            Assert.That(type, Is.EqualTo(directory.Type));
-            Assert.That(name, Is.EqualTo(directory.Name));
+            Assert.That(recLen, Is.EqualTo(expectedRecLen), "Record length mismatch.");
+            Assert.That(nameLen, Is.EqualTo(expectedNameActualLength), "Name length mismatch.");
+            Assert.That(type, Is.EqualTo(directory.Type), "Directory type mismatch.");
+            Assert.That(name, Is.EqualTo(directory.Name), "Name mismatch.");
         });
+        
+        // Assert that padding was written and consumed correctly
+        if (expectedPaddingBytesCount > 0)
+        {
+            var paddingBytes = reader.ReadBytes(expectedPaddingBytesCount);
+            Assert.That(paddingBytes, Is.All.EqualTo(0), "Padding bytes should be null.");
+        }
+        Assert.That(ms.Position, Is.EqualTo(ms.Length), "Stream should be fully consumed, indicating padding was handled.");
     }
 
     [Test]
     public void ReadDirectory_Should_ReturnCorrectDirectory_When_ValidBinaryDataProvided()
     {
         // Arrange
-        var expected = new InodeDirectory
-        {
-            Inode = 99,
-            Name = "etc",
-            Type = InodeDirectoryType.Directory,
-            EntrySize = 12 + 3 // 12 header + 3 name bytes = 15, should be padded to 16 externally
-        };
+        var expectedInodeVal = 99u;
+        var expectedNameVal = "etc";
+        var expectedTypeVal = InodeDirectoryType.Directory;
+        var expectedNameLengthVal = (byte)expectedNameVal.Length;
 
-        var nameBytes = Encoding.UTF8.GetBytes(expected.Name);
+        var minLengthForDisk = 8 + expectedNameLengthVal;
+        var expectedEntrySizeVal = (ushort)((minLengthForDisk + 3) & ~3);
+        var paddingBytesCount = expectedEntrySizeVal - minLengthForDisk;
+
+        var nameBytes = Encoding.UTF8.GetBytes(expectedNameVal);
         using var ms = new MemoryStream();
         using (var writer = new BinaryWriter(ms, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(expected.Inode);
-            writer.Write((ushort)expected.EntrySize);
-            writer.Write((byte)nameBytes.Length);
-            writer.Write((byte)expected.Type);
+            writer.Write(expectedInodeVal);
+            writer.Write(expectedEntrySizeVal);
+            writer.Write(expectedNameLengthVal);
+            writer.Write((byte)expectedTypeVal);
             writer.Write(nameBytes);
+            if (paddingBytesCount > 0)
+            {
+                writer.Write(new byte[paddingBytesCount]);
+            }
         }
 
         ms.Position = 0;
 
         // Act
         using var reader = new BinaryReader(ms);
-        var actual = reader.ReadInodeDirectory();
+        var actualDirectory = reader.ReadInodeDirectory();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(actual.Inode, Is.EqualTo(expected.Inode));
-            Assert.That(actual.EntrySize, Is.EqualTo(expected.EntrySize));
-            Assert.That(actual.Type, Is.EqualTo(expected.Type));
-            Assert.That(actual.Name, Is.EqualTo(expected.Name));
+            Assert.That(actualDirectory.Inode, Is.EqualTo(expectedInodeVal));
+            Assert.That(actualDirectory.EntrySize, Is.EqualTo(expectedEntrySizeVal), "EntrySize (rec_len) from disk should be preserved.");
+            // NameLength is no longer part of the struct
+            Assert.That(actualDirectory.Type, Is.EqualTo(expectedTypeVal));
+            Assert.That(actualDirectory.Name, Is.EqualTo(expectedNameVal));
         });
+        Assert.That(ms.Position, Is.EqualTo(ms.Length), "Stream should be fully consumed by ReadInodeDirectory, including padding.");
     }
 
     [Test]
     public void InodeDirectorySerialization_Should_PreserveData_When_WritingAndReading()
     {
         // Arrange
-        var original = new InodeDirectory
+        var originalDirectory = new InodeDirectory
         {
             Inode = 1234,
             Name = "usr",
             Type = InodeDirectoryType.Directory,
-            EntrySize = 12 + 3 // header + name
         };
+        var anotherDirectory = new InodeDirectory
+        {
+            Inode = 5678,
+            Name = "local",
+            Type = InodeDirectoryType.Directory,
+        };
+
 
         using var ms = new MemoryStream();
 
         // Act
         using (var writer = new BinaryWriter(ms, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(original);
+            writer.Write(originalDirectory);
+            writer.Write(anotherDirectory);
         }
-
         ms.Position = 0;
-
         using var reader = new BinaryReader(ms);
-        var deserialized = reader.ReadInodeDirectory();
+        var deserializedFirst = reader.ReadInodeDirectory();
+        var deserializedSecond = reader.ReadInodeDirectory();
 
         // Assert
+        var expectedNameLenFirst = (byte)originalDirectory.Name.Length;
+        var minLengthFirst = 8 + expectedNameLenFirst;
+        var expectedEntrySizeFirst = (ushort)((minLengthFirst + 3) & ~3);
+
         Assert.Multiple(() =>
         {
-            Assert.That(deserialized.Inode, Is.EqualTo(original.Inode));
-            Assert.That(deserialized.EntrySize, Is.EqualTo(original.EntrySize));
-            Assert.That(deserialized.Type, Is.EqualTo(original.Type));
-            Assert.That(deserialized.Name, Is.EqualTo(original.Name));
+            Assert.That(deserializedFirst.Inode, Is.EqualTo(originalDirectory.Inode), "First Inode mismatch");
+            Assert.That(deserializedFirst.EntrySize, Is.EqualTo(expectedEntrySizeFirst), "First EntrySize mismatch");
+            Assert.That(deserializedFirst.Type, Is.EqualTo(originalDirectory.Type), "First Type mismatch");
+            Assert.That(deserializedFirst.Name, Is.EqualTo(originalDirectory.Name), "First Name mismatch");
         });
+
+        var expectedNameLenSecond = (byte)anotherDirectory.Name.Length;
+        var minLengthSecond = 8 + expectedNameLenSecond;
+        var expectedEntrySizeSecond = (ushort)((minLengthSecond + 3) & ~3);
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserializedSecond.Inode, Is.EqualTo(anotherDirectory.Inode), "Second Inode mismatch");
+            Assert.That(deserializedSecond.EntrySize, Is.EqualTo(expectedEntrySizeSecond), "Second EntrySize mismatch");
+            Assert.That(deserializedSecond.Type, Is.EqualTo(anotherDirectory.Type), "Second Type mismatch");
+            Assert.That(deserializedSecond.Name, Is.EqualTo(anotherDirectory.Name), "Second Name mismatch");
+        });
+
+        Assert.That(ms.Position, Is.EqualTo(ms.Length), "Stream should be fully consumed after reading both entries.");
     }
 }

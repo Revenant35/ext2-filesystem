@@ -20,17 +20,19 @@ public static class InodeSerialization
         var hardLinkCount = reader.ReadUInt16();
         var diskSectorCount = reader.ReadUInt32();
         var flags = (InodeFlags)reader.ReadUInt32();
-        reader.ReadUInt32(); // TODO: OperatingSystemSpecificValues #1
+        var osd1LinuxReserved = reader.ReadBytes(4);
+
         var blockPointers = new uint[15];
         for (var i = 0; i < 15; i++)
         {
             blockPointers[i] = reader.ReadUInt32();
         }
-        reader.ReadUInt32(); // (reserved)
-        reader.ReadUInt32(); // (reserved)
+
         var generationNumber = reader.ReadUInt32();
+        var fileACLBlock = reader.ReadUInt32();
+        var directoryACLBlock = reader.ReadUInt32();
         var fragmentBlockAddress = reader.ReadUInt32();
-        reader.ReadBytes(12); // TODO: OperatingSystemSpecificValues #2
+        var osd2LinuxSpecific = reader.ReadBytes(12);
 
         return new Inode
         {
@@ -48,8 +50,10 @@ public static class InodeSerialization
             Flags = flags,
             BlockPointers = blockPointers,
             GenerationNumber = generationNumber,
+            FileACLBlock = fileACLBlock,
+            DirectoryACLBlock = directoryACLBlock,
             FragmentBlockAddress = fragmentBlockAddress,
-            OperatingSystemSpecificValues = [],
+            OperatingSystemSpecificValues = [..osd1LinuxReserved, ..osd2LinuxSpecific],
         };
     }
 
@@ -67,16 +71,17 @@ public static class InodeSerialization
         writer.Write(inode.HardLinkCount);
         writer.Write(inode.DiskSectorCount);
         writer.Write((uint)inode.Flags);
-        writer.Write((uint)0x00);
+        writer.Write(inode.OperatingSystemSpecificValues.AsSpan(0, 4));
+
         foreach (var blockPointer in inode.BlockPointers)
         {
             writer.Write(blockPointer);
         }
 
-        writer.Write((uint)0x00); // (reserved)
-        writer.Write((uint)0x00); // (reserved)
         writer.Write(inode.GenerationNumber);
+        writer.Write(inode.FileACLBlock);
+        writer.Write(inode.DirectoryACLBlock);
         writer.Write(inode.FragmentBlockAddress);
-        writer.Write(new byte[12]);
+        writer.Write(inode.OperatingSystemSpecificValues.AsSpan(4, 12));
     }
 }

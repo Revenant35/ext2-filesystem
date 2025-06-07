@@ -29,25 +29,25 @@ public static class SuperblockSerialization
             throw new SuperblockFormatException($"Invalid ext2 signature. Expected {Superblock.Ext2Signature}, got {signature}");
         }
 
-        var fileSystemState = reader.ReadUInt16();
-        if (fileSystemState is < 1 or > 2)
+        var rawFileSystemState = reader.ReadUInt16();
+        if (!Enum.IsDefined(typeof(FileSystemState), rawFileSystemState))
         {
-            throw new SuperblockFormatException($"Invalid file system state: {fileSystemState}");
+            throw new SuperblockFormatException($"Invalid file system state: {rawFileSystemState}");
         }
 
-        var errorHandling = reader.ReadUInt16();
-        if (errorHandling is < 1 or > 3)
+        var rawErrorHandling = reader.ReadUInt16();
+        if (!Enum.IsDefined(typeof(ErrorHandling), rawErrorHandling))
         {
-            throw new SuperblockFormatException($"Invalid error handling: {errorHandling}");
+            throw new SuperblockFormatException($"Invalid error handling: {rawErrorHandling}");
         }
 
         var minorVersion = reader.ReadUInt16();
         var lastCheckTime = DateTimeOffset.FromUnixTimeSeconds(reader.ReadUInt32());
         var checkInterval = TimeSpan.FromSeconds(reader.ReadUInt32());
-        var operatingSystemId = reader.ReadUInt32();
-        if (operatingSystemId > 4)
+        var rawOperatingSystemId = reader.ReadUInt32();
+        if (!Enum.IsDefined(typeof(OperatingSystemID), rawOperatingSystemId))
         {
-            throw new SuperblockFormatException($"Invalid operating system ID: {operatingSystemId}");
+            throw new SuperblockFormatException($"Invalid operating system ID: {rawOperatingSystemId}");
         }
 
         var majorVersion = reader.ReadUInt32();
@@ -73,12 +73,12 @@ public static class SuperblockSerialization
             LastWrittenTime = lastWrittenTime,
             MountsSinceLastConsistencyCheck = mountsSinceLastConsistencyCheck,
             MountsBeforeNextConsistencyCheck = mountsBeforeNextConsistencyCheck,
-            FileSystemState = (FileSystemState)fileSystemState,
-            ErrorHandling = (ErrorHandling)errorHandling,
+            FileSystemState = (FileSystemState)rawFileSystemState,
+            ErrorHandling = (ErrorHandling)rawErrorHandling,
             MinorVersion = minorVersion,
             LastCheckTime = lastCheckTime,
             CheckInterval = checkInterval,
-            OperatingSystemId = (OperatingSystemID)operatingSystemId,
+            OperatingSystemId = (OperatingSystemID)rawOperatingSystemId,
             MajorVersion = majorVersion,
             ReservedUserId = reservedUserId,
             ReservedGroupId = reservedGroupId,

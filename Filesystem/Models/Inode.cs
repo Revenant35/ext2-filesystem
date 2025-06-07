@@ -19,14 +19,13 @@ public struct Inode
     public InodeFlags Flags = InodeFlags.None;
     public uint[] BlockPointers = new uint[15];
     public uint GenerationNumber = 0;
+    public uint FileACLBlock = 0;
+    public uint DirectoryACLBlock = 0;
     public uint FragmentBlockAddress = 0;
     public byte[] OperatingSystemSpecificValues = new byte[16]; // TODO: This weirdness
 
     public Inode()
     {
-        for (var i = 0; i < BlockPointers.Length; i++)
-        {
-            BlockPointers[i] = 0;
-        }
+        Array.Fill(BlockPointers, 0u);
     }
 }

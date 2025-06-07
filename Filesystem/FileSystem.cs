@@ -6,11 +6,11 @@ using System.Text;
 
 public class FileSystem
 {
-    private readonly Disk _disk;
+    public readonly Disk Disk;
     
     public FileSystem(Disk disk)
     {
-        _disk = disk;
+        Disk = disk;
     }
     
     public List<InodeDirectory> ReadDirectoryEntries(Inode directoryInode)
@@ -22,23 +22,18 @@ public class FileSystem
 
         foreach (var blockAddress in directoryInode.BlockPointers.Where(ptr => ptr != 0))
         {
-            var block = _disk.ReadBlock((int)blockAddress);
+            var block = Disk.ReadBlock((int)blockAddress);
 
             using var reader = new BinaryReader(new MemoryStream(block), Encoding.UTF8, leaveOpen: false);
 
-            long totalRead = 0;
-            while (totalRead < block.Length)
+            while (reader.BaseStream.Position < block.Length)
             {
-                var startPos = reader.BaseStream.Position;
                 var entry = reader.ReadInodeDirectory();
 
-                if (entry.Inode == 0 || entry.EntrySize == 0)
+                if (entry.Inode == 0) 
                     break;
 
                 entries.Add(entry);
-                totalRead += entry.EntrySize;
-
-                reader.BaseStream.Seek(startPos + entry.EntrySize, SeekOrigin.Begin);
             }
         }
 
@@ -52,7 +47,7 @@ public class FileSystem
 
         var components = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-        var currentInode = _disk.ReadRootInode();
+        var currentInode = Disk.ReadRootInode();
 
         foreach (var component in components)
         {
@@ -65,7 +60,7 @@ public class FileSystem
             if (match.Inode == 0)
                 throw new FileNotFoundException($"'{component}' not found in directory.");
 
-            currentInode = _disk.ReadInode(match.Inode);
+            currentInode = Disk.ReadInode(match.Inode);
         }
 
         return currentInode;
@@ -91,44 +86,39 @@ public class FileSystem
 
         foreach (var blockNumber in GetAllDataBlockPointers(inode))
         {
-            var block = _disk.ReadBlock((int)blockNumber);
+            var block = Disk.ReadBlock((int)blockNumber);
             data.AddRange(block);
         }
 
-        return data.Take((int)inode.SizeBytes).ToArray(); // Trim to actual file size
+        return data.Take((int)inode.SizeBytes).ToArray();
     }
 
     
-    private IEnumerable<uint> GetAllDataBlockPointers(Inode inode)
+    private IEnumerable<uint> GetAllDataBlockPointers(Inode inode) => 
+    [
+        ..GetAllDirectPointers(inode),
+        ..GetAllIndirectPointers(inode),
+    ];
+
+    private IEnumerable<uint> GetAllDirectPointers(Inode inode) =>
+        inode.BlockPointers.Take(12).Where(ptr => ptr != 0);
+
+    private IEnumerable<uint> GetAllIndirectPointers(Inode inode)
     {
-        var blockSize = _disk.BlockSize;
-        var ptrs = new List<uint>();
-
-        // 1. Direct blocks
-        for (int i = 0; i < 12; i++)
-        {
-            var ptr = inode.BlockPointers[i];
-            if (ptr != 0)
-                ptrs.Add(ptr);
-        }
-
-        // 2. Single indirect block
         var indirectBlock = inode.BlockPointers[12];
         if (indirectBlock != 0)
         {
-            var block = _disk.ReadBlock((int)indirectBlock);
+            var block = Disk.ReadBlock((int)indirectBlock);
             using var reader = new BinaryReader(new MemoryStream(block), Encoding.UTF8, leaveOpen: false);
 
-            var pointerCount = blockSize / 4;
-            for (int i = 0; i < pointerCount; i++)
+            var pointerCount = Disk.BlockSize / 4;
+            for (var i = 0; i < pointerCount; i++)
             {
                 var ptr = reader.ReadUInt32();
                 if (ptr != 0)
-                    ptrs.Add(ptr);
+                    yield return ptr;
             }
         }
-
-        return ptrs;
     }
 
 }
