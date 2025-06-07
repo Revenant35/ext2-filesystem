@@ -100,7 +100,7 @@ public class Disk : IDisposable, IAsyncDisposable
         writer.Write(inode);
     }
 
-    private long GetInodeOffset(uint index)
+    public long GetInodeOffset(uint index)
     {
         var groupIndex = (index - 1) / InodesPerGroup;
         var localIndex = (index - 1) % InodesPerGroup;
@@ -112,7 +112,7 @@ public class Disk : IDisposable, IAsyncDisposable
         return inodeTableOffset + localIndex * Inode.Size;
     }
 
-    private long GetBlockOffset(uint blockNumber) => blockNumber * BlockSize;
+    public long GetBlockOffset(uint blockNumber) => blockNumber * BlockSize;
 
     #region IDisposable & IAsyncDisposable
 

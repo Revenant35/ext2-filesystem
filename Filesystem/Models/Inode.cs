@@ -24,4 +24,27 @@ public struct Inode
     public uint GenerationNumber;
     public uint FragmentBlockAddress;
     public byte[] OperatingSystemSpecificValues; // TODO: This weirdness
+
+    public static readonly Inode Default = new Inode
+    {
+        Type = InodeType.FIFO,
+        Permissions = InodePermissions.None,
+        UserID = 0,
+        SizeBytes = 0,
+        LastAccessed = DateTimeOffset.Now,
+        CreatedAt = DateTimeOffset.Now,
+        LastModified = DateTimeOffset.Now,
+        DeletedAt = DateTimeOffset.Now,
+        GroupID = 0,
+        HardLinkCount = 0,
+        DiskSectorCount = 0,
+        Flags = InodeFlags.None,
+        BlockPointers = new uint[12],
+        SinglyIndirectBlockPointer = 0,
+        DoublyIndirectBlockPointer = 0,
+        TriplyIndirectBlockPointer = 0,
+        GenerationNumber = 0,
+        FragmentBlockAddress = 0,
+        OperatingSystemSpecificValues = [],
+    };
 }

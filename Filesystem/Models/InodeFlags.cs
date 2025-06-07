@@ -4,6 +4,7 @@ namespace Filesystem.Models;
 [Flags]
 public enum InodeFlags : uint
 {
+    None = 0,
     SecureDeletion = 1 << 0,
     KeepCopyOfDataWhenDeleted = 1 << 1,
     FileCompression = 1 << 2,

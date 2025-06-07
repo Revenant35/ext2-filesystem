@@ -13,7 +13,7 @@ public class Bitmap
     public Bitmap(byte[] data, int capacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(capacity, data.Length * 8);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(capacity, data.Length * 8);
 
         _data = data;
         Capacity = capacity;

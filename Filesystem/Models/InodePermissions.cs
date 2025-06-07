@@ -4,6 +4,7 @@ namespace Filesystem.Models;
 [Flags]
 public enum InodePermissions : ushort
 {
+    None = 0,
     OtherExecute = 1 << 0,
     OtherWrite = 1 << 1,
     OtherRead = 1 << 2,
