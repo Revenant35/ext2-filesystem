@@ -12,9 +12,10 @@ public class DiskTests
     public void Load_Should_LoadSuperblock()
     {
         // Arrange
+        var superblock = new Superblock();
         using var ms = new MemoryStream();
         var formatter = new DiskFormatter(ms);
-        formatter.Format(Superblock.Default);
+        formatter.Format(superblock);
         ms.Position = 0;
 
         // Act
@@ -23,12 +24,12 @@ public class DiskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(disk.InodeCount, Is.EqualTo(Superblock.Default.InodeCount));
-            Assert.That(disk.BlockCount, Is.EqualTo(Superblock.Default.BlockCount));
-            Assert.That(disk.BlockSize, Is.EqualTo(Superblock.Default.BlockSize));
-            Assert.That(disk.FragmentSize, Is.EqualTo(Superblock.Default.FragmentSize));
-            Assert.That(disk.BlocksPerGroup, Is.EqualTo(Superblock.Default.BlocksPerGroup));
-            Assert.That(disk.InodesPerGroup, Is.EqualTo(Superblock.Default.InodesPerGroup));
+            Assert.That(disk.InodeCount, Is.EqualTo(superblock.InodeCount));
+            Assert.That(disk.BlockCount, Is.EqualTo(superblock.BlockCount));
+            Assert.That(disk.BlockSize, Is.EqualTo(superblock.BlockSize));
+            Assert.That(disk.FragmentSize, Is.EqualTo(superblock.FragmentSize));
+            Assert.That(disk.BlocksPerGroup, Is.EqualTo(superblock.BlocksPerGroup));
+            Assert.That(disk.InodesPerGroup, Is.EqualTo(superblock.InodesPerGroup));
         });
     }
     
@@ -37,11 +38,11 @@ public class DiskTests
     {
         // Arrange
         var inodeIndex = 1u;
-        var expectedInode = Inode.Default;
+        var expectedInode = new Inode();
 
         using var ms = new MemoryStream();
         var formatter = new DiskFormatter(ms);
-        formatter.Format(Superblock.Default);
+        formatter.Format(new Superblock());
 
         var disk = new Disk(ms);
         var inodeOffset = disk.GetInodeOffset(inodeIndex);
@@ -67,14 +68,15 @@ public class DiskTests
     public void ReadBlockBitmap_Should_ReturnCorrectBitmap_WhenValid()
     {
         // Arrange
-        var blockSize = Superblock.Default.BlockSize;
+        var superblock = new Superblock();
+        var blockSize = superblock.BlockSize;
         var blockBitmapAddress = 5u;
         var bitmapData = new byte[blockSize];
         bitmapData[0] = 0b_00001111;
 
         using var ms = new MemoryStream();
         var formatter = new DiskFormatter(ms);
-        formatter.Format(Superblock.Default);
+        formatter.Format(superblock);
 
         ms.Position = blockBitmapAddress * blockSize;
         ms.Write(bitmapData, 0, bitmapData.Length);

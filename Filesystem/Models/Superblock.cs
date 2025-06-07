@@ -5,56 +5,33 @@ public struct Superblock
 {
     public const ushort Ext2Signature = 0xef53;
 
-    public uint InodeCount;
-    public uint BlockCount;
-    public uint SuperuserReservedBlockCount;
-    public uint UnallocatedBlockCount;
-    public uint UnallocatedInodeCount;
-    public uint StartingBlockNumber;
-    public uint BlockSize;
-    public uint FragmentSize;
-    public uint BlocksPerGroup;
-    public uint FragmentsPerGroup;
-    public uint InodesPerGroup;
-    public DateTimeOffset LastMountTime;
-    public DateTimeOffset LastWrittenTime;
-    public ushort MountsSinceLastConsistencyCheck;
-    public ushort MountsBeforeNextConsistencyCheck;
-    public FileSystemState FileSystemState;
-    public ErrorHandling ErrorHandling;
-    public ushort MinorVersion;
-    public DateTimeOffset LastCheckTime;
-    public TimeSpan CheckInterval;
-    public OperatingSystemID OperatingSystemId;
-    public uint MajorVersion;
-    public ushort ReservedUserId;
-    public ushort ReservedGroupId;
-    
-    public static readonly Superblock Default = new()
+    public uint InodeCount = 2048;
+    public uint BlockCount = 32768;
+    public uint SuperuserReservedBlockCount = 1024;
+    public uint UnallocatedBlockCount = 31744;
+    public uint UnallocatedInodeCount = 2000;
+    public uint StartingBlockNumber = 1;
+    public uint BlockSize = 1024;
+    public uint FragmentSize = 1024;
+    public uint BlocksPerGroup = 8192;
+    public uint FragmentsPerGroup = 8192;
+    public uint InodesPerGroup = 2048;
+    public DateTimeOffset LastMountTime = DateTimeOffset.UtcNow;
+    public DateTimeOffset LastWrittenTime = DateTimeOffset.UtcNow;
+    public ushort MountsSinceLastConsistencyCheck = 0;
+    public ushort MountsBeforeNextConsistencyCheck = 20;
+    public FileSystemState FileSystemState = FileSystemState.Clean;
+    public ErrorHandling ErrorHandling = ErrorHandling.Continue;
+    public ushort MinorVersion = 0;
+    public DateTimeOffset LastCheckTime = DateTimeOffset.UtcNow;
+    public TimeSpan CheckInterval = TimeSpan.FromDays(180);
+    public OperatingSystemID OperatingSystemId = OperatingSystemID.Linux;
+    public uint MajorVersion = 0;
+    public ushort ReservedUserId = 0;
+    public ushort ReservedGroupId = 0;
+
+    public Superblock()
     {
-        InodeCount = 2048,
-        BlockCount = 32768,
-        SuperuserReservedBlockCount = 1024,
-        UnallocatedBlockCount = 31744,
-        UnallocatedInodeCount = 2000,
-        StartingBlockNumber = 1,
-        BlockSize = 1024,
-        FragmentSize = 1024,
-        BlocksPerGroup = 8192,
-        FragmentsPerGroup = 8192,
-        InodesPerGroup = 2048,
-        LastMountTime = DateTimeOffset.UtcNow,
-        LastWrittenTime = DateTimeOffset.UtcNow,
-        MountsSinceLastConsistencyCheck = 0,
-        MountsBeforeNextConsistencyCheck = 20,
-        FileSystemState = FileSystemState.Clean,
-        ErrorHandling = ErrorHandling.Continue,
-        MinorVersion = 0,
-        LastCheckTime = DateTimeOffset.UtcNow,
-        CheckInterval = TimeSpan.FromDays(180),
-        OperatingSystemId = OperatingSystemID.Linux,
-        MajorVersion = 1,
-        ReservedUserId = 0,
-        ReservedGroupId = 0,
-    };
+
+    }
 }
