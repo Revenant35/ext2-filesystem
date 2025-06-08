@@ -1,4 +1,4 @@
-namespace Filesystem.Models;
+namespace Filesystem.Enums;
 
 // https://wiki.osdev.org/Ext2#Inode_Data_Structure
 public enum InodeType : ushort

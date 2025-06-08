@@ -1,4 +1,4 @@
-namespace Filesystem.Models;
+namespace Filesystem.Enums;
 
 // https://wiki.osdev.org/Ext2#Superblock
 public enum OperatingSystemID : uint

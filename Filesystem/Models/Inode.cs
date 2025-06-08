@@ -1,31 +1,29 @@
 namespace Filesystem.Models;
 
+using Enums;
+
 // https://wiki.osdev.org/Ext2#Inode_Data_Structure
 public struct Inode
 {
-    public const uint Size = 128;
-
-    public InodeType Type = InodeType.File;
-    public InodePermissions Permissions = InodePermissions.None;
-    public ushort UserID = 0;
-    public uint SizeBytes = 0;
-    public DateTimeOffset? LastAccessed = null;
-    public DateTimeOffset CreatedAt = DateTimeOffset.Now;
-    public DateTimeOffset? LastModified = null;
-    public DateTimeOffset? DeletedAt = null;
-    public ushort GroupID = 0;
-    public ushort HardLinkCount = 0;
-    public uint DiskSectorCount = 0;
-    public InodeFlags Flags = InodeFlags.None;
-    public uint[] BlockPointers = new uint[15];
-    public uint GenerationNumber = 0;
-    public uint FileACLBlock = 0;
-    public uint DirectoryACLBlock = 0;
-    public uint FragmentBlockAddress = 0;
-    public byte[] OperatingSystemSpecificValues = new byte[16]; // TODO: This weirdness
-
-    public Inode()
-    {
-        Array.Fill(BlockPointers, 0u);
-    }
+    public required InodeType Type;
+    public required InodePermissions Permissions;
+    public required ushort UserID;
+    public required uint SizeBytes;
+    public required DateTimeOffset? LastAccessed;
+    public required DateTimeOffset CreatedAt;
+    public required DateTimeOffset? LastModified;
+    public required DateTimeOffset? DeletedAt;
+    public required ushort GroupID;
+    public required ushort HardLinkCount;
+    public required uint DiskSectorCount;
+    public required InodeFlags Flags;
+    public required List<uint> BlockAddresses;
+    public required uint? SinglyIndirectBlockAddress;
+    public required uint? DoublyIndirectBlockAddress;
+    public required uint? TriplyIndirectBlockAddress;
+    public required uint GenerationNumber;
+    public required uint FileACLBlock;
+    public required uint DirectoryACLBlock;
+    public required uint FragmentBlockAddress;
+    public required byte[] OperatingSystemSpecificValues;
 }

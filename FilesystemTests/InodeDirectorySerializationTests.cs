@@ -1,6 +1,7 @@
 using System.Text;
+using Filesystem.Enums;
 using Filesystem.Models;
-using Filesystem.Serializers;
+using Filesystem.Serialization.Serializers;
 
 namespace FilesystemTests;
 
@@ -13,9 +14,10 @@ public class InodeDirectorySerializationTests
         // Arrange
         var directory = new InodeDirectory
         {
-            Inode = 42,
+            InodeAddress = 42,
             Name = "home",
             Type = InodeDirectoryType.Directory,
+            EntrySize = 0,
         };
 
         using var ms = new MemoryStream();
@@ -43,7 +45,7 @@ public class InodeDirectorySerializationTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(inode, Is.EqualTo(directory.Inode));
+            Assert.That(inode, Is.EqualTo(directory.InodeAddress));
             Assert.That(recLen, Is.EqualTo(expectedRecLen), "Record length mismatch.");
             Assert.That(nameLen, Is.EqualTo(expectedNameActualLength), "Name length mismatch.");
             Assert.That(type, Is.EqualTo(directory.Type), "Directory type mismatch.");
@@ -96,7 +98,7 @@ public class InodeDirectorySerializationTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(actualDirectory.Inode, Is.EqualTo(expectedInodeVal));
+            Assert.That(actualDirectory.InodeAddress, Is.EqualTo(expectedInodeVal));
             Assert.That(actualDirectory.EntrySize, Is.EqualTo(expectedEntrySizeVal), "EntrySize (rec_len) from disk should be preserved.");
             // NameLength is no longer part of the struct
             Assert.That(actualDirectory.Type, Is.EqualTo(expectedTypeVal));
@@ -111,15 +113,17 @@ public class InodeDirectorySerializationTests
         // Arrange
         var originalDirectory = new InodeDirectory
         {
-            Inode = 1234,
+            InodeAddress = 1234,
             Name = "usr",
             Type = InodeDirectoryType.Directory,
+            EntrySize = 0,
         };
         var anotherDirectory = new InodeDirectory
         {
-            Inode = 5678,
+            InodeAddress = 5678,
             Name = "local",
             Type = InodeDirectoryType.Directory,
+            EntrySize = 0,
         };
 
 
@@ -143,7 +147,7 @@ public class InodeDirectorySerializationTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(deserializedFirst.Inode, Is.EqualTo(originalDirectory.Inode), "First Inode mismatch");
+            Assert.That(deserializedFirst.InodeAddress, Is.EqualTo(originalDirectory.InodeAddress), "First Inode mismatch");
             Assert.That(deserializedFirst.EntrySize, Is.EqualTo(expectedEntrySizeFirst), "First EntrySize mismatch");
             Assert.That(deserializedFirst.Type, Is.EqualTo(originalDirectory.Type), "First Type mismatch");
             Assert.That(deserializedFirst.Name, Is.EqualTo(originalDirectory.Name), "First Name mismatch");
@@ -154,7 +158,7 @@ public class InodeDirectorySerializationTests
         var expectedEntrySizeSecond = (ushort)((minLengthSecond + 3) & ~3);
         Assert.Multiple(() =>
         {
-            Assert.That(deserializedSecond.Inode, Is.EqualTo(anotherDirectory.Inode), "Second Inode mismatch");
+            Assert.That(deserializedSecond.InodeAddress, Is.EqualTo(anotherDirectory.InodeAddress), "Second Inode mismatch");
             Assert.That(deserializedSecond.EntrySize, Is.EqualTo(expectedEntrySizeSecond), "Second EntrySize mismatch");
             Assert.That(deserializedSecond.Type, Is.EqualTo(anotherDirectory.Type), "Second Type mismatch");
             Assert.That(deserializedSecond.Name, Is.EqualTo(anotherDirectory.Name), "Second Name mismatch");

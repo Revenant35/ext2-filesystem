@@ -1,8 +1,8 @@
 namespace FilesystemTests;
 
-using Filesystem.Exceptions;
+using Filesystem.Enums;
 using Filesystem.Models;
-using Filesystem.Serializers;
+using Filesystem.Serialization.Serializers;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -75,7 +75,7 @@ public class SuperblockSerializationTests
         _stream.WriteByte(0x00); // Corrupt the signature
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
+        var ex = Assert.Throws<Exception>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid ext2 signature"));
     }
 
@@ -91,7 +91,7 @@ public class SuperblockSerializationTests
         _stream.Write(BitConverter.GetBytes(state), 0, 2); // Set invalid file system state
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
+        var ex = Assert.Throws<Exception>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid file system state"));
     }
 
@@ -107,7 +107,7 @@ public class SuperblockSerializationTests
         _stream.Write(BitConverter.GetBytes(value), 0, 2); // Set invalid error handling value
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
+        var ex = Assert.Throws<Exception>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid error handling"));
     }
 
@@ -122,7 +122,7 @@ public class SuperblockSerializationTests
         _stream.Write(BitConverter.GetBytes(5u), 0, 4); // Set invalid OS ID (5 is not defined in OperatingSystemID enum)
         _stream.Position = 0;
 
-        var ex = Assert.Throws<SuperblockFormatException>(() => _reader.ReadSuperblock());
+        var ex = Assert.Throws<Exception>(() => _reader.ReadSuperblock());
         Assert.That(ex!.Message, Does.Contain("Invalid operating system ID"));
     }
 

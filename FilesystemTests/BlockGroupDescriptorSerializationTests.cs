@@ -1,7 +1,7 @@
 ﻿namespace FilesystemTests;
 
 using Filesystem.Models;
-using Filesystem.Serializers;
+using Filesystem.Serialization.Serializers;
 using NUnit.Framework;
 using System.IO;
 

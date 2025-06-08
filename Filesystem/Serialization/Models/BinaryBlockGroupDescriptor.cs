@@ -1,8 +1,10 @@
-namespace Filesystem.Models;
+namespace Filesystem.Serialization.Models;
 
 // https://wiki.osdev.org/Ext2#Block_Group_Descriptor_Table
-public struct BlockGroupDescriptor
+public struct BinaryBlockGroupDescriptor
 {
+    public const long SizeOnDiskInBytes = 32;
+
     public required uint BlockUsageBitmapBlockAddress;
     public required uint InodeUsageBitmapBlockAddress;
     public required uint InodeTableStartingBlockAddress;

@@ -1,50 +1,117 @@
 namespace Filesystem;
 
 using Models;
-using Serializers;
+using Serialization.Models;
+using Serialization.Serializers;
 using System.Text;
 
 public class Disk : IDisposable, IAsyncDisposable
 {
     public const long SuperblockOffset = 1024;
-
-    public readonly Stream Stream;
-    private readonly Superblock _superblock;
-    private readonly BlockGroupDescriptor[] _blockGroupDescriptors;
-
-    public uint InodeCount => _superblock.InodeCount;
-    public uint BlockCount => _superblock.BlockCount;
-    public uint BlockSize => _superblock.BlockSize;
-    public uint FragmentSize => _superblock.FragmentSize;
-    public uint BlocksPerGroup => _superblock.BlocksPerGroup;
-    public uint InodesPerGroup => _superblock.InodesPerGroup;
-    public uint BlockGroupCount => (uint)Math.Ceiling(BlockCount / (double)BlocksPerGroup);
-
-    private uint BlockGroupDescriptorTableOffset => BlockSize == 1024 ? 2 * BlockSize : BlockSize;
+    private readonly BinaryReader _reader;
+    private readonly Stream _stream;
+    private readonly BinaryWriter _writer;
 
     public Disk(Stream stream)
     {
-        Stream = stream;
+        _stream = stream;
+        _reader = new BinaryReader(_stream, Encoding.UTF8, true);
+        _writer = new BinaryWriter(_stream, Encoding.UTF8, true);
 
-        Stream.Position = SuperblockOffset;
-        using var reader = new BinaryReader(Stream, Encoding.UTF8, leaveOpen: true);
-        _superblock = reader.ReadSuperblock();
-
-        _blockGroupDescriptors = new BlockGroupDescriptor[BlockGroupCount];
-        Stream.Position = BlockGroupDescriptorTableOffset;
-        for (uint i = 0; i < BlockGroupCount; i++)
-        {
-            _blockGroupDescriptors[i] = reader.ReadBlockGroupDescriptor();
-        }
+        Superblock = ReadSuperblock();
+        BlockGroupDescriptors = ReadBlockGroupDescriptorTable();
     }
+
+    public Superblock Superblock { get; }
+    public BlockGroupDescriptor[] BlockGroupDescriptors { get; }
+
+    public uint InodeCount => Superblock.InodeCount;
+    public uint BlockCount => Superblock.BlockCount;
+    public uint BlockSize => Superblock.BlockSize;
+    public uint FragmentSize => Superblock.FragmentSize;
+    public uint BlocksPerGroup => Superblock.BlocksPerGroup;
+    public uint InodesPerGroup => Superblock.InodesPerGroup;
+    public uint BlockGroupCount => (uint)Math.Ceiling(BlockCount / (double)BlocksPerGroup);
+
+    public long BlockBitmapSizeBytes => BlockSize;
+    public long InodeBitmapSizeBytes => BlockSize;
+    public long InodeTableSizeBytes => InodesPerGroup * BinaryInode.SizeOnDiskInBytes;
+    public long DataBlocksSizeBytes => BlocksPerGroup * BlockSize - InodeTableSizeBytes - InodeBitmapSizeBytes - BlockBitmapSizeBytes;
+    private long BlockGroupDescriptorTableOffset => BlockSize == 1024 ? 2 * BlockSize : BlockSize;
+    private long BlockGroupDescriptorCount => BlockSize / BinaryBlockGroupDescriptor.SizeOnDiskInBytes;
+    public long GetBlockBitmapOffset(long blockGroupNumber)
+    {
+        if (blockGroupNumber == 0)
+        {
+            return BlockGroupDescriptorTableOffset + BlockSize;
+        }
+
+        return blockGroupNumber * BlocksPerGroup * BlockSize;
+    }
+
+    public long GetInodeBitmapOffset(long blockGroupNumber) => GetBlockBitmapOffset(blockGroupNumber) + BlockBitmapSizeBytes;
+    public long GetInodeTableOffset(long blockGroupNumber) => GetInodeBitmapOffset(blockGroupNumber) + InodeBitmapSizeBytes;
+    public long GetDataBlocksOffset(long blockGroupNumber) => GetInodeTableOffset(blockGroupNumber) + InodeTableSizeBytes;
+
+
+    #region Superblock I/O
+
+    public Superblock ReadSuperblock()
+    {
+        _stream.Seek(SuperblockOffset, SeekOrigin.Begin);
+
+        return _reader.ReadSuperblock();
+    }
+
+    // public void WriteSuperblock(Superblock superblock)
+    // {
+    //     _stream.Seek(SuperblockOffset, SeekOrigin.Begin);
+    //
+    //     _writer.Write(superblock);
+    //
+    //     Superblock = superblock;
+    // }
+
+    #endregion
+
+
+    #region BlockGroupDescriptor I/O
+
+    public BlockGroupDescriptor[] ReadBlockGroupDescriptorTable()
+    {
+        var descriptors = new BlockGroupDescriptor[BlockGroupDescriptorCount];
+
+        _stream.Seek(BlockGroupDescriptorTableOffset, SeekOrigin.Begin);
+        for (var i = 0; i < BlockGroupDescriptorCount; i++)
+        {
+            descriptors[i] = _reader.ReadBlockGroupDescriptor();
+        }
+
+        return descriptors;
+    }
+
+    // public void WriteBlockGroupDescriptorTable(BlockGroupDescriptor[] descriptors)
+    // {
+    //     ArgumentOutOfRangeException.ThrowIfNotEqual(BlockGroupDescriptorCount, descriptors.Length);
+    //
+    //     _stream.Seek(BlockGroupDescriptorTableOffset, SeekOrigin.Begin);
+    //     foreach (var descriptor in descriptors)
+    //     {
+    //         _writer.Write(descriptor);
+    //     }
+    //
+    //     BlockGroupDescriptors = descriptors;
+    // }
+
+    #endregion
+
+
+    #region Block I/O
 
     public byte[] ReadBlock(int blockNumber)
     {
-        var buffer = new byte[BlockSize];
-        var offset = blockNumber * BlockSize;
-        Stream.Seek(offset, SeekOrigin.Begin);
-        Stream.ReadExactly(buffer, 0, (int)BlockSize);
-        return buffer;
+        _stream.Seek(GetBlockOffset(blockNumber), SeekOrigin.Begin);
+        return _reader.ReadBytes((int)BlockSize);
     }
 
     public void WriteBlock(int blockNumber, byte[] data)
@@ -52,24 +119,16 @@ public class Disk : IDisposable, IAsyncDisposable
         if (data.Length != BlockSize)
             throw new ArgumentException($"Data must be exactly {BlockSize} bytes long.", nameof(data));
 
-        var offset = blockNumber * BlockSize;
-        Stream.Seek(offset, SeekOrigin.Begin);
-        Stream.Write(data, 0, (int)BlockSize);
+        _stream.Seek(GetBlockOffset(blockNumber), SeekOrigin.Begin);
+        _writer.Write(data);
     }
 
-    public Bitmap ReadBlockBitmap(BlockGroupDescriptor descriptor) =>
-        new(ReadBlock((int)descriptor.BlockUsageBitmapBlockAddress), (int)BlocksPerGroup);
+    private long GetBlockOffset(int blockNumber) => blockNumber * BlockSize;
 
-    public void WriteBlockBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
-        WriteBlock((int)descriptor.BlockUsageBitmapBlockAddress, bitmap.ToByteArray());
+    #endregion
 
-    public Bitmap ReadInodeBitmap(BlockGroupDescriptor descriptor) =>
-        new(ReadBlock((int)descriptor.InodeUsageBitmapBlockAddress), (int)InodesPerGroup);
 
-    public void WriteInodeBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
-        WriteBlock((int)descriptor.InodeUsageBitmapBlockAddress, bitmap.ToByteArray());
-
-    public Inode ReadRootInode() => ReadInode(2);
+    #region Inode I/O
 
     public Inode ReadInode(uint inodeIndex)
     {
@@ -79,53 +138,80 @@ public class Disk : IDisposable, IAsyncDisposable
         var groupIndex = (inodeIndex - 1) / InodesPerGroup;
         var localIndex = (inodeIndex - 1) % InodesPerGroup;
 
-        var descriptor = _blockGroupDescriptors[(int)groupIndex];
+        var descriptor = BlockGroupDescriptors[(int)groupIndex];
         var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
 
         var inodeTableOffset = inodeTableBlock * BlockSize;
 
-        Stream.Position = inodeTableOffset + localIndex * Inode.Size;
+        _stream.Position = inodeTableOffset + localIndex * BinaryInode.SizeOnDiskInBytes;
 
-        using var reader = new BinaryReader(Stream, Encoding.UTF8, leaveOpen: true);
-        return reader.ReadInode();
+        return _reader.ReadInode();
     }
 
-    private void WriteInode(Inode inode, uint index)
+    public Inode ReadRootInode() => ReadInode(2);
+
+    public void WriteInode(Inode inode, uint index)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(index);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(index, InodeCount);
 
-        Stream.Position = GetInodeOffset(index);
-        using var writer = new BinaryWriter(Stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write(inode);
+        _stream.Position = GetInodeOffset(index);
+        _writer.Write(inode);
     }
 
-    public long GetInodeOffset(uint index)
+    private long GetInodeOffset(uint index)
     {
         var groupIndex = (index - 1) / InodesPerGroup;
         var localIndex = (index - 1) % InodesPerGroup;
 
-        var descriptor = _blockGroupDescriptors[(int)groupIndex];
+        var descriptor = BlockGroupDescriptors[(int)groupIndex];
         var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
 
-        var inodeTableOffset = GetBlockOffset(inodeTableBlock);
-        return inodeTableOffset + localIndex * Inode.Size;
+        var inodeTableOffset = GetBlockOffset((int)inodeTableBlock);
+        return inodeTableOffset + localIndex * BinaryInode.SizeOnDiskInBytes;
     }
 
-    public long GetBlockOffset(uint blockNumber) => blockNumber * BlockSize;
+    #endregion
+
+
+    #region Block Bitmap I/O
+
+    public Bitmap ReadBlockBitmap(BlockGroupDescriptor descriptor) =>
+        new(ReadBlock((int)descriptor.BlockUsageBitmapBlockAddress), (int)BlocksPerGroup);
+
+    public void WriteBlockBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
+        WriteBlock((int)descriptor.BlockUsageBitmapBlockAddress, bitmap.ToByteArray());
+
+    #endregion
+
+
+    #region Inode Bitmap I/O
+
+    public Bitmap ReadInodeBitmap(BlockGroupDescriptor descriptor) =>
+        new(ReadBlock((int)descriptor.InodeUsageBitmapBlockAddress), (int)InodesPerGroup);
+
+    public void WriteInodeBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
+        WriteBlock((int)descriptor.InodeUsageBitmapBlockAddress, bitmap.ToByteArray());
+
+    #endregion
+
 
     #region IDisposable & IAsyncDisposable
 
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        Stream.Dispose();
+        _writer.Dispose();
+        _reader.Dispose();
+        _stream.Dispose();
     }
 
     public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
-        await Stream.DisposeAsync();
+        _reader.Dispose();
+        await _writer.DisposeAsync();
+        await _stream.DisposeAsync();
     }
 
     #endregion

@@ -1,9 +1,11 @@
-namespace Filesystem.Serializers;
+namespace Filesystem.Serialization.Serializers;
 
+using Filesystem.Models;
+using Mapping;
 using Models;
 
 // https://wiki.osdev.org/Ext2#Directory_Entry
-public static class InodeDirectorySerialization
+public static class InodeDirectorySerializer
 {
     private const int Ext2MaxNameLength = 255;
     private const int DirectoryEntryFixedFieldsSize = 8;
@@ -11,54 +13,47 @@ public static class InodeDirectorySerialization
 
     public static InodeDirectory ReadInodeDirectory(this BinaryReader reader)
     {
-        var inode = reader.ReadUInt32();
+        var inodeAddress = reader.ReadUInt32();
         var entrySize = reader.ReadUInt16();
         var nameLength = reader.ReadByte();
-        var directoryType = (InodeDirectoryType)reader.ReadByte();
-        
-        if (nameLength > Ext2MaxNameLength)
-        {
-            throw new InvalidDataException($"Corrupt directory entry: nameLength {nameLength} exceeds maximum allowed length of {Ext2MaxNameLength}.");
-        }
-
+        var directoryType = reader.ReadByte();
         var nameBytes = reader.ReadBytes(nameLength);
-        var name = System.Text.Encoding.UTF8.GetString(nameBytes);
 
         var consumedDataSize = DirectoryEntryFixedFieldsSize + nameLength;
         var padding = entrySize - consumedDataSize;
 
-        if (padding < 0) 
+        if (padding < 0)
         {
             throw new InvalidDataException("Directory entry size (rec_len) is smaller than the sum of its fixed parts and name length.");
         }
-        if (padding > 0)
-        {
-            reader.ReadBytes(padding);
-        }
 
-        return new InodeDirectory
+        reader.ReadBytes(padding);
+
+        var binary = new BinaryInodeDirectory
         {
-            Inode = inode,
+            InodeAddress = inodeAddress,
             EntrySize = entrySize,
+            NameLength = nameLength,
             Type = directoryType,
-            Name = name
+            Name = nameBytes,
         };
+
+        return binary.ToInodeDirectory();
     }
 
     public static void Write(this BinaryWriter writer, InodeDirectory inodeDirectory)
     {
-        var nameBytes = System.Text.Encoding.UTF8.GetBytes(inodeDirectory.Name ?? string.Empty);
-        var nameLength = (byte)nameBytes.Length;
+        var binary = inodeDirectory.ToBinaryInodeDirectory();
 
-        var minLengthWithoutPadding = DirectoryEntryFixedFieldsSize + nameLength;
-        var actualEntrySize = (ushort)((minLengthWithoutPadding + DirectoryEntryAlignment - 1) & ~(DirectoryEntryAlignment - 1));
+        var minLengthWithoutPadding = DirectoryEntryFixedFieldsSize + binary.NameLength;
+        var actualEntrySize = (ushort)(minLengthWithoutPadding + DirectoryEntryAlignment - 1 & ~(DirectoryEntryAlignment - 1));
         var paddingBytesToWrite = actualEntrySize - minLengthWithoutPadding;
 
-        writer.Write(inodeDirectory.Inode);
+        writer.Write(inodeDirectory.InodeAddress);
         writer.Write(actualEntrySize);
-        writer.Write(nameLength);
+        writer.Write(binary.NameLength);
         writer.Write((byte)inodeDirectory.Type);
-        writer.Write(nameBytes);
+        writer.Write(binary.Name);
 
         if (paddingBytesToWrite > 0)
         {

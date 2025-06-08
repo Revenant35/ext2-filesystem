@@ -1,3 +1,13 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-Console.WriteLine("Hello, World!");
+using Filesystem;
+
+using var fs = new FileStream("ext2.img", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+if (!fs.CanRead || !fs.CanWrite)
+{
+    Console.WriteLine("Cannot read or write to the file.");
+    return;
+}
+using var disk = new Disk(fs);
+
+Console.WriteLine(disk.BlockSize);

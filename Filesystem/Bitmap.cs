@@ -6,10 +6,6 @@ public class Bitmap
 {
     private readonly byte[] _data;
 
-    public int Capacity { get; }
-    public uint UsedBits => (uint)_data.Sum(t => BitOperations.PopCount(t));
-    public uint UnusedBits => (uint)(Capacity - UsedBits);
-
     public Bitmap(byte[] data, int capacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
@@ -19,6 +15,10 @@ public class Bitmap
         Capacity = capacity;
     }
 
+    public int Capacity { get; }
+    public uint UsedBits => (uint)_data.Sum(t => BitOperations.PopCount(t));
+    public uint UnusedBits => (uint)(Capacity - UsedBits);
+
     public bool Test(int index)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
@@ -26,7 +26,7 @@ public class Bitmap
 
         var byteIndex = index / 8;
         var bitOffset = index % 8;
-        return (_data[byteIndex] & (1 << bitOffset)) != 0;
+        return (_data[byteIndex] & 1 << bitOffset) != 0;
     }
 
     public void Set(int index)
@@ -66,15 +66,19 @@ public class Bitmap
     public IEnumerable<int> UnsetBits()
     {
         for (var i = 0; i < Capacity; i++)
+        {
             if (!Test(i))
                 yield return i;
+        }
     }
 
     public IEnumerable<int> SetBits()
     {
         for (var i = 0; i < Capacity; i++)
+        {
             if (Test(i))
                 yield return i;
+        }
     }
 
     public byte[] ToByteArray() => _data.ToArray();

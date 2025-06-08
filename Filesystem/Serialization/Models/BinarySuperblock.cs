@@ -1,31 +1,32 @@
-namespace Filesystem.Models;
-
-using Enums;
+namespace Filesystem.Serialization.Models;
 
 // https://wiki.osdev.org/Ext2#Superblock
-public struct Superblock
+public struct BinarySuperblock
 {
+    public const long SizeOnDiskInBytes = 1024;
+    public const ushort Ext2Signature = 0xef53;
+
     public required uint InodeCount;
     public required uint BlockCount;
     public required uint SuperuserReservedBlockCount;
     public required uint UnallocatedBlockCount;
     public required uint UnallocatedInodeCount;
     public required uint StartingBlockNumber;
-    public required uint BlockSize;
-    public required uint FragmentSize;
+    public required int BlockSize;
+    public required int FragmentSize;
     public required uint BlocksPerGroup;
     public required uint FragmentsPerGroup;
     public required uint InodesPerGroup;
-    public required DateTimeOffset LastMountTime;
-    public required DateTimeOffset LastWrittenTime;
+    public required uint LastMountTime;
+    public required uint LastWrittenTime;
     public required ushort MountsSinceLastConsistencyCheck;
     public required ushort MountsBeforeNextConsistencyCheck;
-    public required FileSystemState FileSystemState;
-    public required ErrorHandling ErrorHandling;
+    public required ushort FileSystemState;
+    public required ushort ErrorHandling;
     public required ushort MinorVersion;
-    public required DateTimeOffset LastCheckTime;
-    public required TimeSpan CheckInterval;
-    public required OperatingSystemID OperatingSystemId;
+    public required uint LastCheckTime;
+    public required uint CheckInterval;
+    public required uint OperatingSystemId;
     public required uint MajorVersion;
     public required ushort ReservedUserId;
     public required ushort ReservedGroupId;

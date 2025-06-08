@@ -11,4 +11,10 @@
       <ProjectReference Include="..\Filesystem\Filesystem.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="ext2.img">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

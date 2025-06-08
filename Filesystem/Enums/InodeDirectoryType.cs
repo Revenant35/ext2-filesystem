@@ -1,4 +1,4 @@
-namespace Filesystem.Models;
+namespace Filesystem.Enums;
 
 // https://wiki.osdev.org/Ext2#Directory_Entry
 public enum InodeDirectoryType : byte

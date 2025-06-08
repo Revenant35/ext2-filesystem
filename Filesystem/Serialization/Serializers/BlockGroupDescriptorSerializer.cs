@@ -1,9 +1,11 @@
-namespace Filesystem.Serializers;
+namespace Filesystem.Serialization.Serializers;
 
+using Filesystem.Models;
+using Mapping;
 using Models;
 
 // https://wiki.osdev.org/Ext2#Block_Group_Descriptor_Table
-public static class BlockGroupDescriptorSerialization
+public static class BlockGroupDescriptorSerializer
 {
     public static BlockGroupDescriptor ReadBlockGroupDescriptor(this BinaryReader reader)
     {
@@ -13,9 +15,9 @@ public static class BlockGroupDescriptorSerialization
         var unallocatedBlocksInGroup = reader.ReadUInt16();
         var unallocatedInodesInGroup = reader.ReadUInt16();
         var directoriesInGroup = reader.ReadUInt16();
-        reader.ReadBytes(14);
+        reader.ReadBytes(14); // (unused)
 
-        return new BlockGroupDescriptor
+        var binary = new BinaryBlockGroupDescriptor
         {
             BlockUsageBitmapBlockAddress = blockUsageBitmapBlockAddress,
             InodeUsageBitmapBlockAddress = inodeUsageBitmapBlockAddress,
@@ -24,16 +26,20 @@ public static class BlockGroupDescriptorSerialization
             UnallocatedInodesInGroup = unallocatedInodesInGroup,
             DirectoriesInGroup = directoriesInGroup,
         };
+
+        return binary.ToBlockGroupDescriptor();
     }
 
     public static void Write(this BinaryWriter writer, BlockGroupDescriptor blockGroupDescriptor)
     {
-        writer.Write(blockGroupDescriptor.BlockUsageBitmapBlockAddress);
-        writer.Write(blockGroupDescriptor.InodeUsageBitmapBlockAddress);
-        writer.Write(blockGroupDescriptor.InodeTableStartingBlockAddress);
-        writer.Write(blockGroupDescriptor.UnallocatedBlocksInGroup);
-        writer.Write(blockGroupDescriptor.UnallocatedInodesInGroup);
-        writer.Write(blockGroupDescriptor.DirectoriesInGroup);
-        writer.Write(new byte[14]);
+        var binary = blockGroupDescriptor.ToBinaryBlockGroupDescriptor();
+
+        writer.Write(binary.BlockUsageBitmapBlockAddress);
+        writer.Write(binary.InodeUsageBitmapBlockAddress);
+        writer.Write(binary.InodeTableStartingBlockAddress);
+        writer.Write(binary.UnallocatedBlocksInGroup);
+        writer.Write(binary.UnallocatedInodesInGroup);
+        writer.Write(binary.DirectoriesInGroup);
+        writer.Write(new byte[14]); // (unused)
     }
 }
