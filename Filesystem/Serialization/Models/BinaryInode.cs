@@ -3,8 +3,6 @@ namespace Filesystem.Serialization.Models;
 // https://wiki.osdev.org/Ext2#Inode_Data_Structure
 public struct BinaryInode
 {
-    public const long SizeOnDiskInBytes = 128;
-
     public required ushort TypeAndPermissions;
     public required ushort UserID;
     public required uint SizeBytes;

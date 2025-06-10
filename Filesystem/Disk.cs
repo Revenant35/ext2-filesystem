@@ -37,7 +37,7 @@ public class Disk : IDisposable, IAsyncDisposable
 
     public long BlockBitmapSizeBytes => BlockSize;
     public long InodeBitmapSizeBytes => BlockSize;
-    public long InodeTableSizeBytes => InodesPerGroup * BinaryInode.SizeOnDiskInBytes;
+    public long InodeTableSizeBytes => InodesPerGroup * Superblock.InodeSize;
     public long DataBlocksSizeBytes => BlocksPerGroup * BlockSize - InodeTableSizeBytes - InodeBitmapSizeBytes - BlockBitmapSizeBytes;
     private long BlockGroupDescriptorTableOffset => BlockSize == 1024 ? 2 * BlockSize : BlockSize;
     private long BlockGroupDescriptorCount => BlockSize / BinaryBlockGroupDescriptor.SizeOnDiskInBytes;
@@ -271,7 +271,7 @@ public class Disk : IDisposable, IAsyncDisposable
         var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
 
         var inodeTableOffset = GetBlockOffset(inodeTableBlock);
-        return inodeTableOffset + localIndex * BinaryInode.SizeOnDiskInBytes;
+        return inodeTableOffset + localIndex * Superblock.InodeSize;
     }
 
     #endregion

@@ -55,8 +55,24 @@ public static class SuperblockSerializer
         var majorVersion = reader.ReadUInt32();
         var reservedUserId = reader.ReadUInt16();
         var reservedGroupId = reader.ReadUInt16();
+        var firstNonReservedInode = reader.ReadUInt32();
+        var inodeSize = reader.ReadUInt16();
+        var blockGroupNumber = reader.ReadUInt16();
+        var optionalFeatures = reader.ReadUInt32();
+        var requiredFeatures = reader.ReadUInt32();
+        var incompatibleFeatures = reader.ReadUInt32();
+        var fileSystemId = reader.ReadBytes(16);
+        var volumeName = reader.ReadBytes(16);
+        var lastMountedPath = reader.ReadBytes(64);
+        var compressionAlgorithms = reader.ReadUInt32();
+        var preallocatedBlocksForFiles = reader.ReadByte();
+        var preallocatedBlocksForDirectories = reader.ReadByte();
+        reader.ReadBytes(2);
+        var journalId = reader.ReadBytes(16);
+        var journalInode = reader.ReadUInt32();
+        var journalDevice = reader.ReadUInt32();
 
-        reader.ReadBytes(940); // (unused)
+        reader.ReadBytes(788); // (unused)
 
         var binary = new BinarySuperblock
         {
@@ -84,6 +100,21 @@ public static class SuperblockSerializer
             MajorVersion = majorVersion,
             ReservedUserId = reservedUserId,
             ReservedGroupId = reservedGroupId,
+            FirstNonReservedInode = firstNonReservedInode,
+            InodeSize = inodeSize,
+            BlockGroupNumber = blockGroupNumber,
+            OptionalFeatures = optionalFeatures,
+            RequiredFeatures = requiredFeatures,
+            IncompatibleFeatures = incompatibleFeatures,
+            FileSystemId = fileSystemId,
+            VolumeName = volumeName,
+            LastMountedPath = lastMountedPath,
+            CompressionAlgorithms = compressionAlgorithms,
+            PreallocatedBlocksForFiles = preallocatedBlocksForFiles,
+            PreallocatedBlocksForDirectories = preallocatedBlocksForDirectories,
+            JournalId = journalId,
+            JournalInode = journalInode,
+            JournalDevice = journalDevice,
         };
 
         return binary.ToSuperblock();
@@ -118,6 +149,22 @@ public static class SuperblockSerializer
         writer.Write(binary.MajorVersion);
         writer.Write(binary.ReservedUserId);
         writer.Write(binary.ReservedGroupId);
-        writer.Write(new byte[940]); // (unused)
+        writer.Write(binary.FirstNonReservedInode);
+        writer.Write(binary.InodeSize);
+        writer.Write(binary.BlockGroupNumber);
+        writer.Write(binary.OptionalFeatures);
+        writer.Write(binary.RequiredFeatures);
+        writer.Write(binary.IncompatibleFeatures);
+        writer.Write(binary.FileSystemId);
+        writer.Write(binary.VolumeName);
+        writer.Write(binary.LastMountedPath);
+        writer.Write(binary.CompressionAlgorithms);
+        writer.Write(binary.PreallocatedBlocksForFiles);
+        writer.Write(binary.PreallocatedBlocksForDirectories);
+        writer.Write(new byte[2]); // (unused)
+        writer.Write(binary.JournalId);
+        writer.Write(binary.JournalInode);
+        writer.Write(binary.JournalDevice);
+        writer.Write(new byte[788]); // (unused)
     }
 }

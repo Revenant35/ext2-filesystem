@@ -3,7 +3,6 @@ namespace Filesystem.Serialization.Models;
 // https://wiki.osdev.org/Ext2#Superblock
 public struct BinarySuperblock
 {
-    public const long SizeOnDiskInBytes = 1024;
     public const ushort Ext2Signature = 0xef53;
 
     public required uint InodeCount;
@@ -30,4 +29,19 @@ public struct BinarySuperblock
     public required uint MajorVersion;
     public required ushort ReservedUserId;
     public required ushort ReservedGroupId;
+    public required uint FirstNonReservedInode;
+    public required ushort InodeSize;
+    public required ushort BlockGroupNumber;
+    public required uint OptionalFeatures;
+    public required uint RequiredFeatures;
+    public required uint IncompatibleFeatures;
+    public required byte[] FileSystemId;
+    public required byte[] VolumeName;
+    public required byte[] LastMountedPath;
+    public required uint CompressionAlgorithms;
+    public required byte PreallocatedBlocksForFiles;
+    public required byte PreallocatedBlocksForDirectories;
+    public required byte[] JournalId;
+    public required uint JournalInode;
+    public required uint JournalDevice;
 }
