@@ -51,9 +51,9 @@ public static class InodeMapper
             .Take(12)
             .Where(u => u != 0)
             .ToList(),
-        SinglyIndirectBlockAddress = binary.SinglyIndirectBlockAddress,
-        DoublyIndirectBlockAddress = binary.DoublyIndirectBlockAddress,
-        TriplyIndirectBlockAddress = binary.TriplyIndirectBlockAddress,
+        SinglyIndirectBlockAddress = binary.SinglyIndirectBlockAddress != 0 ? binary.SinglyIndirectBlockAddress : null,
+        DoublyIndirectBlockAddress = binary.DoublyIndirectBlockAddress != 0 ? binary.DoublyIndirectBlockAddress : null,
+        TriplyIndirectBlockAddress = binary.TriplyIndirectBlockAddress != 0 ? binary.TriplyIndirectBlockAddress : null,
         GenerationNumber = binary.GenerationNumber,
         FileACLBlock = binary.FileACLBlock,
         DirectoryACLBlock = binary.DirectoryACLBlock,

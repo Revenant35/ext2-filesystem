@@ -16,13 +16,7 @@ public static class InodeSerializer
         {
             throw new Exception($"Invalid inode type: {inodeType}");
         }
-        
-        var inodePermissions = typeAndPermissions & 0x0FFF;
-        if (!Enum.IsDefined(typeof(InodePermissions), (ushort)inodePermissions))
-        {
-            throw new Exception($"Invalid inode permissions: {inodePermissions}");
-        }
-        
+
         var userID = reader.ReadUInt16();
         var sizeInBytes = reader.ReadUInt32();
         var lastAccessed = reader.ReadUInt32();
