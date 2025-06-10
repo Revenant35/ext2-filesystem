@@ -149,9 +149,9 @@ public class Disk : IDisposable, IAsyncDisposable
         var stream = new MemoryStream(block);
         using var reader = new BinaryReader(stream, Encoding.UTF8, false);
         
-        while(reader.BaseStream.Position + BinaryInodeDirectory.DirectoryEntryFixedFieldsSize < stream.Length)
+        while(stream.Position + BinaryInodeDirectory.DirectoryEntryFixedFieldsSize < stream.Length)
         {
-            var entryStart = reader.BaseStream.Position;
+            var entryStart = stream.Position;
 
             var inodeAddress = reader.ReadUInt32();
             var entrySize = reader.ReadUInt16();
@@ -192,47 +192,32 @@ public class Disk : IDisposable, IAsyncDisposable
     
     private IEnumerable<uint> GetAllDataBlockPointers(Inode inode)
     {
-        var blockPointers = new List<uint>(inode.BlockAddresses);
-        if (inode.SinglyIndirectBlockAddress.HasValue)
-        {
-            blockPointers.AddRange(ReadIndirectBlockPointers(inode.SinglyIndirectBlockAddress.Value, 1));
-        }
-        if (inode.DoublyIndirectBlockAddress.HasValue)
-        {
-            blockPointers.AddRange(ReadIndirectBlockPointers(inode.DoublyIndirectBlockAddress.Value, 2));
-        }
-        if (inode.TriplyIndirectBlockAddress.HasValue)
-        {
-            blockPointers.AddRange(ReadIndirectBlockPointers(inode.TriplyIndirectBlockAddress.Value, 3));
-        }
-        return blockPointers.Where(ptr => ptr != 0);
+        return inode.BlockAddresses
+            .Concat(Indirect(inode.SinglyIndirectBlockAddress, 1))
+            .Concat(Indirect(inode.DoublyIndirectBlockAddress, 2))
+            .Concat(Indirect(inode.TriplyIndirectBlockAddress, 3))
+            .Where(ptr => ptr != 0);
+
+        IEnumerable<uint> Indirect(uint? address, byte depth) =>
+            address.HasValue ? ReadIndirectBlockPointers(address.Value, depth) : [];
     }
     
-    public IEnumerable<uint> ReadIndirectBlockPointers(uint blockAddress, byte depth)
+    private IEnumerable<uint> ReadIndirectBlockPointers(uint blockAddress, byte depth)
     {
-        ArgumentOutOfRangeException.ThrowIfZero(blockAddress);
+        ArgumentOutOfRangeException.ThrowIfZero(depth);
 
-        _stream.Seek(GetBlockOffset(blockAddress), SeekOrigin.Begin);
+        var block = ReadBlock(blockAddress);
+        using var stream = new MemoryStream(block);
+        using var reader = new BinaryReader(stream, Encoding.UTF8, false);
         
-        var pointerCount = BlockSize / 4;
-        for (var i = 0; i < pointerCount; i++)
+        for (var i = 0; i < BlockSize / 4; i++)
         {
-            var ptr = _reader.ReadUInt32();
-            if (ptr == 0)
+            var ptr = reader.ReadUInt32();
+            if (ptr == 0) continue;
+            if (depth == 1) yield return ptr;
+            foreach (var subPtr in ReadIndirectBlockPointers(ptr, (byte)(depth - 1)))
             {
-                continue;
-            }
-            
-            if (depth > 1)
-            {
-                foreach (var subPtr in ReadIndirectBlockPointers(ptr, (byte)(depth - 1)))
-                {
-                    yield return subPtr;
-                }
-            } 
-            else
-            {
-                yield return ptr;
+                yield return subPtr;
             }
         }
     }

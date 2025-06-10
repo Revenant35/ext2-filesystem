@@ -46,6 +46,21 @@ public class SuperblockSerializationTests
         MajorVersion = 1,
         ReservedUserId = 0,
         ReservedGroupId = 0,
+        FirstNonReservedInode = 0,
+        InodeSize = 0,
+        BlockGroupNumber = 0,
+        OptionalFeatures = 0,
+        RequiredFeatures = 0,
+        IncompatibleFeatures = 0,
+        FileSystemId = new byte[16],
+        VolumeName = new byte[16],
+        LastMountedPath = new byte[64],
+        CompressionAlgorithms = 0,
+        PreallocatedBlocksForFiles = 0,
+        PreallocatedBlocksForDirectories = 0,
+        JournalId = new byte[16],
+        JournalInode = 0,
+        JournalDevice = 0,
     };
 
     [SetUp]
