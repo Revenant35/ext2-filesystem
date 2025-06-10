@@ -10,7 +10,7 @@ if (!fs.CanRead || !fs.CanWrite)
 }
 
 using var disk = new Disk(fs);
-using var fileSystem = new FileSystem(disk);
+var fileSystem = new FileSystem(disk);
 
 var directories = fileSystem.ListRootDirectory().ToList();
 

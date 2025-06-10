@@ -306,7 +306,6 @@ public class Disk : IDisposable, IAsyncDisposable
         GC.SuppressFinalize(this);
         _writer.Dispose();
         _reader.Dispose();
-        _stream.Dispose();
     }
 
     public async ValueTask DisposeAsync()
@@ -314,7 +313,6 @@ public class Disk : IDisposable, IAsyncDisposable
         GC.SuppressFinalize(this);
         _reader.Dispose();
         await _writer.DisposeAsync();
-        await _stream.DisposeAsync();
     }
 
     #endregion

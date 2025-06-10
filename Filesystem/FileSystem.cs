@@ -1,6 +1,6 @@
 namespace Filesystem;
 
-public class FileSystem : IDisposable, IAsyncDisposable
+public class FileSystem
 {
     private readonly Disk _disk;
 
@@ -13,21 +13,4 @@ public class FileSystem : IDisposable, IAsyncDisposable
         _disk.ReadRootDirectoryEntries()
             .Select(e => e.Name);
 
-
-
-    #region IDisposable & IAsyncDisposable
-
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
-        _disk.Dispose();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        GC.SuppressFinalize(this);
-        await _disk.DisposeAsync();
-    }
-
-    #endregion
 }

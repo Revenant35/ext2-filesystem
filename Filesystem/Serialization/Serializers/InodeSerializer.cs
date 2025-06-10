@@ -12,13 +12,13 @@ public static class InodeSerializer
     {
         var typeAndPermissions = reader.ReadUInt16();
         var inodeType = typeAndPermissions & 0xF000;
-        if (!Enum.IsDefined(typeof(InodeType), inodeType))
+        if (!Enum.IsDefined(typeof(InodeType), (ushort)inodeType))
         {
             throw new Exception($"Invalid inode type: {inodeType}");
         }
         
         var inodePermissions = typeAndPermissions & 0x0FFF;
-        if (!Enum.IsDefined(typeof(InodePermissions), inodePermissions))
+        if (!Enum.IsDefined(typeof(InodePermissions), (ushort)inodePermissions))
         {
             throw new Exception($"Invalid inode permissions: {inodePermissions}");
         }
