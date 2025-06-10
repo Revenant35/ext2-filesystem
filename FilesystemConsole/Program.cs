@@ -8,6 +8,14 @@ if (!fs.CanRead || !fs.CanWrite)
     Console.WriteLine("Cannot read or write to the file.");
     return;
 }
-using var disk = new Disk(fs);
 
-Console.WriteLine(disk.BlockSize);
+using var disk = new Disk(fs);
+using var fileSystem = new FileSystem(disk);
+
+var directories = fileSystem.ListRootDirectory().ToList();
+
+Console.WriteLine("Root Directory Entries:");
+foreach (var entry in directories)
+{
+    Console.WriteLine($"- {entry}");
+}

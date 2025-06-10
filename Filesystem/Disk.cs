@@ -1,5 +1,7 @@
 namespace Filesystem;
 
+using Enums;
+using Mapping;
 using Models;
 using Serialization.Models;
 using Serialization.Serializers;
@@ -108,13 +110,13 @@ public class Disk : IDisposable, IAsyncDisposable
 
     #region Block I/O
 
-    public byte[] ReadBlock(int blockNumber)
+    public byte[] ReadBlock(uint blockNumber)
     {
         _stream.Seek(GetBlockOffset(blockNumber), SeekOrigin.Begin);
         return _reader.ReadBytes((int)BlockSize);
     }
 
-    public void WriteBlock(int blockNumber, byte[] data)
+    public void WriteBlock(uint blockNumber, byte[] data)
     {
         if (data.Length != BlockSize)
             throw new ArgumentException($"Data must be exactly {BlockSize} bytes long.", nameof(data));
@@ -123,7 +125,117 @@ public class Disk : IDisposable, IAsyncDisposable
         _writer.Write(data);
     }
 
-    private long GetBlockOffset(int blockNumber) => blockNumber * BlockSize;
+    private long GetBlockOffset(uint blockNumber) => blockNumber * BlockSize;
+
+    #endregion
+
+
+    #region Directory I/O
+    
+    public IEnumerable<InodeDirectory> ReadRootDirectoryEntries() => ReadDirectoryEntries(ReadRootInode());
+
+    public IEnumerable<InodeDirectory> ReadDirectoryEntries(Inode inode)
+    {
+        if (inode.Type != InodeType.Directory)
+            throw new ArgumentException("Inode is not a directory.", nameof(inode));
+
+        return GetAllDataBlockPointers(inode)
+            .Select(ReadBlock)
+            .SelectMany(ReadDirectoryEntries);
+    }
+    
+    private IEnumerable<InodeDirectory> ReadDirectoryEntries(byte[] block)
+    {
+        var stream = new MemoryStream(block);
+        using var reader = new BinaryReader(stream, Encoding.UTF8, false);
+        
+        while(reader.BaseStream.Position + BinaryInodeDirectory.DirectoryEntryFixedFieldsSize < stream.Length)
+        {
+            var entryStart = reader.BaseStream.Position;
+
+            var inodeAddress = reader.ReadUInt32();
+            var entrySize = reader.ReadUInt16();
+            var nameLength = reader.ReadByte();
+            var directoryType = reader.ReadByte();
+
+            if (entrySize < BinaryInodeDirectory.DirectoryEntryFixedFieldsSize || entryStart + entrySize > stream.Length)
+            {
+                yield break;
+            }
+
+            var nameBytes = reader.ReadBytes(nameLength);
+
+            var padding = entrySize - (BinaryInodeDirectory.DirectoryEntryFixedFieldsSize + nameLength);
+            if (padding > 0)
+            {
+                reader.ReadBytes(padding);
+            }
+
+            if (inodeAddress == 0)
+            {
+                continue;
+            }
+            
+            var binary = new BinaryInodeDirectory
+            {
+                InodeAddress = inodeAddress,
+                EntrySize = entrySize,
+                NameLength = nameLength,
+                Type = directoryType,
+                Name = nameBytes,
+            };
+
+            yield return binary.ToInodeDirectory();
+        }
+    }
+
+    
+    private IEnumerable<uint> GetAllDataBlockPointers(Inode inode)
+    {
+        var blockPointers = new List<uint>(inode.BlockAddresses);
+        if (inode.SinglyIndirectBlockAddress.HasValue)
+        {
+            blockPointers.AddRange(ReadIndirectBlockPointers(inode.SinglyIndirectBlockAddress.Value, 1));
+        }
+        if (inode.DoublyIndirectBlockAddress.HasValue)
+        {
+            blockPointers.AddRange(ReadIndirectBlockPointers(inode.DoublyIndirectBlockAddress.Value, 2));
+        }
+        if (inode.TriplyIndirectBlockAddress.HasValue)
+        {
+            blockPointers.AddRange(ReadIndirectBlockPointers(inode.TriplyIndirectBlockAddress.Value, 3));
+        }
+        return blockPointers.Where(ptr => ptr != 0);
+    }
+    
+    public IEnumerable<uint> ReadIndirectBlockPointers(uint blockAddress, byte depth)
+    {
+        ArgumentOutOfRangeException.ThrowIfZero(blockAddress);
+
+        _stream.Seek(GetBlockOffset(blockAddress), SeekOrigin.Begin);
+        
+        var pointerCount = BlockSize / 4;
+        for (var i = 0; i < pointerCount; i++)
+        {
+            var ptr = _reader.ReadUInt32();
+            if (ptr == 0)
+            {
+                continue;
+            }
+            
+            if (depth > 1)
+            {
+                foreach (var subPtr in ReadIndirectBlockPointers(ptr, (byte)(depth - 1)))
+                {
+                    yield return subPtr;
+                }
+            } 
+            else
+            {
+                yield return ptr;
+            }
+        }
+    }
 
     #endregion
 
@@ -135,16 +247,7 @@ public class Disk : IDisposable, IAsyncDisposable
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(inodeIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(inodeIndex, InodeCount);
 
-        var groupIndex = (inodeIndex - 1) / InodesPerGroup;
-        var localIndex = (inodeIndex - 1) % InodesPerGroup;
-
-        var descriptor = BlockGroupDescriptors[(int)groupIndex];
-        var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
-
-        var inodeTableOffset = inodeTableBlock * BlockSize;
-
-        _stream.Position = inodeTableOffset + localIndex * BinaryInode.SizeOnDiskInBytes;
-
+        _stream.Position = GetInodeOffset(inodeIndex);
         return _reader.ReadInode();
     }
 
@@ -167,7 +270,7 @@ public class Disk : IDisposable, IAsyncDisposable
         var descriptor = BlockGroupDescriptors[(int)groupIndex];
         var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
 
-        var inodeTableOffset = GetBlockOffset((int)inodeTableBlock);
+        var inodeTableOffset = GetBlockOffset(inodeTableBlock);
         return inodeTableOffset + localIndex * BinaryInode.SizeOnDiskInBytes;
     }
 
@@ -177,10 +280,10 @@ public class Disk : IDisposable, IAsyncDisposable
     #region Block Bitmap I/O
 
     public Bitmap ReadBlockBitmap(BlockGroupDescriptor descriptor) =>
-        new(ReadBlock((int)descriptor.BlockUsageBitmapBlockAddress), (int)BlocksPerGroup);
+        new(ReadBlock(descriptor.BlockUsageBitmapBlockAddress), (int)BlocksPerGroup);
 
     public void WriteBlockBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
-        WriteBlock((int)descriptor.BlockUsageBitmapBlockAddress, bitmap.ToByteArray());
+        WriteBlock(descriptor.BlockUsageBitmapBlockAddress, bitmap.ToByteArray());
 
     #endregion
 
@@ -188,10 +291,10 @@ public class Disk : IDisposable, IAsyncDisposable
     #region Inode Bitmap I/O
 
     public Bitmap ReadInodeBitmap(BlockGroupDescriptor descriptor) =>
-        new(ReadBlock((int)descriptor.InodeUsageBitmapBlockAddress), (int)InodesPerGroup);
+        new(ReadBlock(descriptor.InodeUsageBitmapBlockAddress), (int)InodesPerGroup);
 
     public void WriteInodeBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
-        WriteBlock((int)descriptor.InodeUsageBitmapBlockAddress, bitmap.ToByteArray());
+        WriteBlock(descriptor.InodeUsageBitmapBlockAddress, bitmap.ToByteArray());
 
     #endregion
 

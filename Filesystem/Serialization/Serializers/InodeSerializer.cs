@@ -1,5 +1,6 @@
 namespace Filesystem.Serialization.Serializers;
 
+using Enums;
 using Filesystem.Models;
 using Mapping;
 using Models;
@@ -10,6 +11,18 @@ public static class InodeSerializer
     public static Inode ReadInode(this BinaryReader reader)
     {
         var typeAndPermissions = reader.ReadUInt16();
+        var inodeType = typeAndPermissions & 0xF000;
+        if (!Enum.IsDefined(typeof(InodeType), inodeType))
+        {
+            throw new Exception($"Invalid inode type: {inodeType}");
+        }
+        
+        var inodePermissions = typeAndPermissions & 0x0FFF;
+        if (!Enum.IsDefined(typeof(InodePermissions), inodePermissions))
+        {
+            throw new Exception($"Invalid inode permissions: {inodePermissions}");
+        }
+        
         var userID = reader.ReadUInt16();
         var sizeInBytes = reader.ReadUInt32();
         var lastAccessed = reader.ReadUInt32();
@@ -20,6 +33,11 @@ public static class InodeSerializer
         var hardLinkCount = reader.ReadUInt16();
         var diskSectorCount = reader.ReadUInt32();
         var flags = reader.ReadUInt32();
+        if (!Enum.IsDefined(typeof(InodeFlags), flags))
+        {
+            throw new Exception($"Invalid inode flags: {flags}");
+        }
+        
         var osd1LinuxReserved = reader.ReadBytes(4);
 
         var blockAddresses = new uint[12];
