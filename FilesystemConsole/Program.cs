@@ -43,6 +43,7 @@ public class Program
         services.AddSingleton<Stream>(_ => GetDiskImageStream());
 
         services.AddAutoMapper(typeof(SuperblockProfile));
+        services.AddAutoMapper(typeof(InodeProfile));
 
         services.AddSingleton<ISuperblockService, SuperblockService>();
         services.AddSingleton<IBlockGroupDescriptorService, BlockGroupDescriptorService>();
