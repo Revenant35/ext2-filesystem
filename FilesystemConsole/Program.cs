@@ -17,8 +17,8 @@ public class Program
 
         try
         {
-            var fileSystem = host.Services.GetRequiredService<FileSystem>();
-            var directories = fileSystem.ListRootDirectory().ToList();
+            var disk = host.Services.GetRequiredService<FileSystem>();
+            var directories = disk.ListRootDirectory().ToList();
 
             Console.WriteLine("Root Directory Entries:");
             foreach (var entry in directories)
@@ -50,7 +50,6 @@ public class Program
         services.AddSingleton<ISuperblockService, SuperblockService>();
         services.AddSingleton<IBlockGroupDescriptorService, BlockGroupDescriptorService>();
         services.AddSingleton<IInodeService, InodeService>();
-        services.AddSingleton<Disk>();
         services.AddSingleton<FileSystem>();
     }
     
