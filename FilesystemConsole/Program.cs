@@ -2,6 +2,7 @@ using Filesystem;
 using Filesystem.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Filesystem.Mapping;
 
 namespace FilesystemConsole;
 
@@ -41,9 +42,7 @@ public class Program
     {
         services.AddSingleton<Stream>(_ => GetDiskImageStream());
 
-        // Register AutoMapper
-        // Assumes SuperblockProfile and any other profiles are in the same assembly as SuperblockProfile
-        // services.AddAutoMapper(typeof(SuperblockProfile).Assembly);
+        services.AddAutoMapper(typeof(SuperblockProfile));
 
         services.AddSingleton<ISuperblockService, SuperblockService>();
         services.AddSingleton<IBlockGroupDescriptorService, BlockGroupDescriptorService>();

@@ -1,94 +1,37 @@
+using AutoMapper;
+using System.Numerics;
+
 namespace Filesystem.Mapping;
 
 using Enums;
 using Models;
 using Serialization.Models;
 
-public static class SuperblockMapper
+public class SuperblockProfile : Profile
 {
-    public static Superblock ToSuperblock(this BinarySuperblock binary) => new()
+    public SuperblockProfile()
     {
-        InodeCount = binary.InodeCount,
-        BlockCount = binary.BlockCount,
-        SuperuserReservedBlockCount = binary.SuperuserReservedBlockCount,
-        UnallocatedBlockCount = binary.UnallocatedBlockCount,
-        UnallocatedInodeCount = binary.UnallocatedInodeCount,
-        StartingBlockNumber = binary.StartingBlockNumber,
-        BlockSize = 1024u << Convert.ToInt32(binary.BlockSize),
-        FragmentSize = 1024u << Convert.ToInt32(binary.FragmentSize),
-        BlocksPerGroup = binary.BlocksPerGroup,
-        FragmentsPerGroup = binary.FragmentsPerGroup,
-        InodesPerGroup = binary.InodesPerGroup,
-        LastMountTime = DateTimeOffset.FromUnixTimeSeconds(binary.LastMountTime),
-        LastWrittenTime = DateTimeOffset.FromUnixTimeSeconds(binary.LastWrittenTime),
-        MountsSinceLastConsistencyCheck = binary.MountsSinceLastConsistencyCheck,
-        MountsBeforeNextConsistencyCheck = binary.MountsBeforeNextConsistencyCheck,
-        FileSystemState = (FileSystemState)binary.FileSystemState,
-        ErrorHandling = (ErrorHandling)binary.ErrorHandling,
-        MinorVersion = binary.MinorVersion,
-        LastCheckTime = DateTimeOffset.FromUnixTimeSeconds(binary.LastCheckTime),
-        CheckInterval = TimeSpan.FromSeconds(binary.CheckInterval),
-        OperatingSystemId = (OperatingSystemID)binary.OperatingSystemId,
-        MajorVersion = binary.MajorVersion,
-        ReservedUserId = binary.ReservedUserId,
-        ReservedGroupId = binary.ReservedGroupId,
-        FirstNonReservedInode = binary.FirstNonReservedInode,
-        InodeSize = binary.InodeSize,
-        BlockGroupNumber = binary.BlockGroupNumber,
-        OptionalFeatures = binary.OptionalFeatures,
-        RequiredFeatures = binary.RequiredFeatures,
-        IncompatibleFeatures = binary.IncompatibleFeatures,
-        FileSystemId = binary.FileSystemId,
-        VolumeName = binary.VolumeName,
-        LastMountedPath = binary.LastMountedPath,
-        CompressionAlgorithms = binary.CompressionAlgorithms,
-        PreallocatedBlocksForFiles = binary.PreallocatedBlocksForFiles,
-        PreallocatedBlocksForDirectories = binary.PreallocatedBlocksForDirectories,
-        JournalId = binary.JournalId,
-        JournalInode = binary.JournalInode,
-        JournalDevice = binary.JournalDevice,
-    };
+        CreateMap<BinarySuperblock, Superblock>()
+            .ForMember(dest => dest.BlockSize, opt => opt.MapFrom(src => 1024u << Convert.ToInt32(src.BlockSize)))
+            .ForMember(dest => dest.FragmentSize, opt => opt.MapFrom(src => 1024u << Convert.ToInt32(src.FragmentSize)))
+            .ForMember(dest => dest.LastMountTime, opt => opt.MapFrom(src => DateTimeOffset.FromUnixTimeSeconds(src.LastMountTime)))
+            .ForMember(dest => dest.LastWrittenTime, opt => opt.MapFrom(src => DateTimeOffset.FromUnixTimeSeconds(src.LastWrittenTime)))
+            .ForMember(dest => dest.LastCheckTime, opt => opt.MapFrom(src => DateTimeOffset.FromUnixTimeSeconds(src.LastCheckTime)))
+            .ForMember(dest => dest.CheckInterval, opt => opt.MapFrom(src => TimeSpan.FromSeconds(src.CheckInterval)))
+            .ForMember(dest => dest.FileSystemState, opt => opt.MapFrom(src => (FileSystemState)src.FileSystemState))
+            .ForMember(dest => dest.ErrorHandling, opt => opt.MapFrom(src => (ErrorHandling)src.ErrorHandling))
+            .ForMember(dest => dest.OperatingSystemId, opt => opt.MapFrom(src => (OperatingSystemID)src.OperatingSystemId));
 
-    public static BinarySuperblock ToBinarySuperblock(this Superblock superblock) => new()
-    {
-        InodeCount = superblock.InodeCount,
-        BlockCount = superblock.BlockCount,
-        SuperuserReservedBlockCount = superblock.SuperuserReservedBlockCount,
-        UnallocatedBlockCount = superblock.UnallocatedBlockCount,
-        UnallocatedInodeCount = superblock.UnallocatedInodeCount,
-        StartingBlockNumber = superblock.StartingBlockNumber,
-        BlockSize = (int)uint.Log2(superblock.BlockSize) - 10,
-        FragmentSize = (int)uint.Log2(superblock.FragmentSize) - 10,
-        BlocksPerGroup = superblock.BlocksPerGroup,
-        FragmentsPerGroup = superblock.FragmentsPerGroup,
-        InodesPerGroup = superblock.InodesPerGroup,
-        LastMountTime = Convert.ToUInt32(superblock.LastMountTime.ToUnixTimeSeconds()),
-        LastWrittenTime = Convert.ToUInt32(superblock.LastWrittenTime.ToUnixTimeSeconds()),
-        MountsSinceLastConsistencyCheck = superblock.MountsSinceLastConsistencyCheck,
-        MountsBeforeNextConsistencyCheck = superblock.MountsBeforeNextConsistencyCheck,
-        FileSystemState = (ushort)superblock.FileSystemState,
-        ErrorHandling = (ushort)superblock.ErrorHandling,
-        MinorVersion = superblock.MinorVersion,
-        LastCheckTime = Convert.ToUInt32(superblock.LastCheckTime.ToUnixTimeSeconds()),
-        CheckInterval = Convert.ToUInt32(superblock.CheckInterval.TotalSeconds),
-        OperatingSystemId = (uint)superblock.OperatingSystemId,
-        MajorVersion = superblock.MajorVersion,
-        ReservedUserId = superblock.ReservedUserId,
-        ReservedGroupId = superblock.ReservedGroupId,
-        FirstNonReservedInode = superblock.FirstNonReservedInode,
-        InodeSize = superblock.InodeSize,
-        BlockGroupNumber = superblock.BlockGroupNumber,
-        OptionalFeatures = superblock.OptionalFeatures,
-        RequiredFeatures = superblock.RequiredFeatures,
-        IncompatibleFeatures = superblock.IncompatibleFeatures,
-        FileSystemId = superblock.FileSystemId,
-        VolumeName = superblock.VolumeName,
-        LastMountedPath = superblock.LastMountedPath,
-        CompressionAlgorithms = superblock.CompressionAlgorithms,
-        PreallocatedBlocksForFiles = superblock.PreallocatedBlocksForFiles,
-        PreallocatedBlocksForDirectories = superblock.PreallocatedBlocksForDirectories,
-        JournalId = superblock.JournalId,
-        JournalInode = superblock.JournalInode,
-        JournalDevice = superblock.JournalDevice,
-    };
+        CreateMap<Superblock, BinarySuperblock>()
+            .ForMember(dest => dest.BlockSize, opt => opt.MapFrom(src => BitOperations.Log2(src.BlockSize) - 10))
+            .ForMember(dest => dest.FragmentSize, opt => opt.MapFrom(src => BitOperations.Log2(src.FragmentSize) - 10))
+            .ForMember(dest => dest.LastMountTime, opt => opt.MapFrom(src => Convert.ToUInt32(src.LastMountTime.ToUnixTimeSeconds())))
+            .ForMember(dest => dest.LastWrittenTime, opt => opt.MapFrom(src => Convert.ToUInt32(src.LastWrittenTime.ToUnixTimeSeconds())))
+            .ForMember(dest => dest.LastCheckTime, opt => opt.MapFrom(src => Convert.ToUInt32(src.LastCheckTime.ToUnixTimeSeconds())))
+            .ForMember(dest => dest.CheckInterval, opt => opt.MapFrom(src => Convert.ToUInt32(src.CheckInterval.TotalSeconds)))
+            .ForMember(dest => dest.FileSystemState, opt => opt.MapFrom(src => (ushort)src.FileSystemState))
+            .ForMember(dest => dest.ErrorHandling, opt => opt.MapFrom(src => (ushort)src.ErrorHandling))
+            .ForMember(dest => dest.OperatingSystemId, opt => opt.MapFrom(src => (uint)src.OperatingSystemId));
+            
+    }
 }
