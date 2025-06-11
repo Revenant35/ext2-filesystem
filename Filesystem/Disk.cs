@@ -12,18 +12,16 @@ public class Disk : IDisposable, IAsyncDisposable
 {
     private readonly BinaryReader _reader;
     private readonly Stream _stream;
-    private readonly SuperblockService _superblockService;
+    private readonly ISuperblockService _superblockService;
+    private readonly IBlockGroupDescriptorService _blockGroupDescriptorService;
     private readonly BinaryWriter _writer;
 
-    public BlockGroupDescriptor[] BlockGroupDescriptors { get; }
-        
     public long BlockBitmapSizeBytes => _superblockService.BlockSize;
     public long InodeBitmapSizeBytes => _superblockService.BlockSize;
     public long InodeTableSizeBytes => _superblockService.InodesPerGroup * _superblockService.InodeSize;
     public long DataBlocksSizeBytes => _superblockService.BlocksPerGroup * _superblockService.BlockSize - InodeTableSizeBytes - InodeBitmapSizeBytes - BlockBitmapSizeBytes;
     public uint BlockGroupCount => (uint)Math.Ceiling(_superblockService.BlockCount / (double)_superblockService.BlocksPerGroup);
 
-    private long BlockGroupDescriptorCount => _superblockService.BlockSize / BinaryBlockGroupDescriptor.SizeOnDiskInBytes;
     private long BlockGroupDescriptorTableOffset => _superblockService.BlockSize == 1024 ? 2 * _superblockService.BlockSize : _superblockService.BlockSize;
         
     public long GetBlockBitmapOffset(long blockGroupNumber)
@@ -41,49 +39,18 @@ public class Disk : IDisposable, IAsyncDisposable
     public long GetDataBlocksOffset(long blockGroupNumber) => GetInodeTableOffset(blockGroupNumber) + InodeTableSizeBytes;
 
     
-    public Disk(Stream stream, SuperblockService superblockService)
+    public Disk(
+        Stream stream,
+        ISuperblockService superblockService,
+        IBlockGroupDescriptorService blockGroupDescriptorService
+    )
     {
         _stream = stream;
         _superblockService = superblockService;
+        _blockGroupDescriptorService = blockGroupDescriptorService;
         _reader = new BinaryReader(_stream, Encoding.UTF8, true);
         _writer = new BinaryWriter(_stream, Encoding.UTF8, true);
-
-        _superblockService.ReadSuperblock();
-        BlockGroupDescriptors = ReadBlockGroupDescriptorTable();
     }
-
-
-
-
-    #region BlockGroupDescriptor I/O
-
-    public BlockGroupDescriptor[] ReadBlockGroupDescriptorTable()
-    {
-        var descriptors = new BlockGroupDescriptor[BlockGroupDescriptorCount];
-
-        _stream.Seek(BlockGroupDescriptorTableOffset, SeekOrigin.Begin);
-        for (var i = 0; i < BlockGroupDescriptorCount; i++)
-        {
-            descriptors[i] = _reader.ReadBlockGroupDescriptor();
-        }
-
-        return descriptors;
-    }
-
-    // public void WriteBlockGroupDescriptorTable(BlockGroupDescriptor[] descriptors)
-    // {
-    //     ArgumentOutOfRangeException.ThrowIfNotEqual(BlockGroupDescriptorCount, descriptors.Length);
-    //
-    //     _stream.Seek(BlockGroupDescriptorTableOffset, SeekOrigin.Begin);
-    //     foreach (var descriptor in descriptors)
-    //     {
-    //         _writer.Write(descriptor);
-    //     }
-    //
-    //     BlockGroupDescriptors = descriptors;
-    // }
-
-    #endregion
 
 
     #region Block I/O
@@ -230,7 +197,7 @@ public class Disk : IDisposable, IAsyncDisposable
         var groupIndex = (index - 1) / _superblockService.InodesPerGroup;
         var localIndex = (index - 1) % _superblockService.InodesPerGroup;
 
-        var descriptor = BlockGroupDescriptors[(int)groupIndex];
+        var descriptor = _blockGroupDescriptorService.BlockGroupDescriptors[(int)groupIndex];
         var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
 
         var inodeTableOffset = GetBlockOffset(inodeTableBlock);

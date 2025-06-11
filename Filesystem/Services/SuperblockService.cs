@@ -23,9 +23,10 @@ public class SuperblockService : ISuperblockService
     public SuperblockService(Stream stream)
     {
         _stream = stream;
+        Superblock = ReadSuperblock();
     }
     
-    public void ReadSuperblock()
+    public Superblock ReadSuperblock()
     {
         var previousPosition = _stream.Position;
         _stream.Seek(SuperblockOffset, SeekOrigin.Begin);
@@ -33,7 +34,8 @@ public class SuperblockService : ISuperblockService
 
         var superblock = reader.ReadSuperblock();
         _stream.Seek(previousPosition, SeekOrigin.Begin);
-        Superblock = superblock;
+
+        return superblock;
     }
 
     public void WriteSuperblock(Superblock superblock)

@@ -13,6 +13,6 @@ public interface ISuperblockService
     uint BlocksPerGroup { get; }
     uint InodesPerGroup { get; }
     
-    void ReadSuperblock();
+    Superblock ReadSuperblock();
     void WriteSuperblock(Superblock superblock);
 }
