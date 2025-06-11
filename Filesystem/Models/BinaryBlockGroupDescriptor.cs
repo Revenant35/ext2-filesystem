@@ -1,4 +1,4 @@
-namespace Filesystem.Serialization.Models;
+namespace Filesystem.Models;
 
 // https://wiki.osdev.org/Ext2#Block_Group_Descriptor_Table
 public struct BinaryBlockGroupDescriptor

@@ -1,4 +1,4 @@
-namespace Filesystem.Serialization.Models;
+namespace Filesystem.Models;
 
 // https://wiki.osdev.org/Ext2#Inode_Data_Structure
 public struct BinaryInode

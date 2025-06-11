@@ -5,7 +5,6 @@ namespace Filesystem.Services;
 
 using Enums;
 using Models;
-using Serialization.Models;
 
 public class SuperblockService : ISuperblockService
 {

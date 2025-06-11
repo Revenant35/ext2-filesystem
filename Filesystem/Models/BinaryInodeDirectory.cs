@@ -1,4 +1,4 @@
-namespace Filesystem.Serialization.Models;
+namespace Filesystem.Models;
 
 // https://wiki.osdev.org/Ext2#Directory_Entry
 public struct BinaryInodeDirectory

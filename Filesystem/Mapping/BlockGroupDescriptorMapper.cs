@@ -1,27 +1,14 @@
 namespace Filesystem.Mapping;
 
+using AutoMapper;
 using Models;
-using Serialization.Models;
 
-public static class BlockGroupDescriptorMapper
+public class BlockGroupDescriptorProfile : Profile
 {
-    public static BlockGroupDescriptor ToBlockGroupDescriptor(this BinaryBlockGroupDescriptor binary) => new()
+    public BlockGroupDescriptorProfile()
     {
-        BlockUsageBitmapBlockAddress = binary.BlockUsageBitmapBlockAddress,
-        InodeUsageBitmapBlockAddress = binary.InodeUsageBitmapBlockAddress,
-        InodeTableStartingBlockAddress = binary.InodeTableStartingBlockAddress,
-        UnallocatedBlocksInGroup = binary.UnallocatedBlocksInGroup,
-        UnallocatedInodesInGroup = binary.UnallocatedInodesInGroup,
-        DirectoriesInGroup = binary.DirectoriesInGroup,
-    };
+        CreateMap<BinaryBlockGroupDescriptor, BlockGroupDescriptor>();
 
-    public static BinaryBlockGroupDescriptor ToBinaryBlockGroupDescriptor(this BlockGroupDescriptor blockGroupDescriptor) => new()
-    {
-        BlockUsageBitmapBlockAddress = blockGroupDescriptor.BlockUsageBitmapBlockAddress,
-        InodeUsageBitmapBlockAddress = blockGroupDescriptor.InodeUsageBitmapBlockAddress,
-        InodeTableStartingBlockAddress = blockGroupDescriptor.InodeTableStartingBlockAddress,
-        UnallocatedBlocksInGroup = blockGroupDescriptor.UnallocatedBlocksInGroup,
-        UnallocatedInodesInGroup = blockGroupDescriptor.UnallocatedInodesInGroup,
-        DirectoriesInGroup = blockGroupDescriptor.DirectoriesInGroup,
-    };
+        CreateMap<BlockGroupDescriptor, BinaryBlockGroupDescriptor>();
+    }
 }
