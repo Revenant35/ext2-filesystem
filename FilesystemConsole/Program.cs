@@ -12,7 +12,8 @@ if (!fs.CanRead || !fs.CanWrite)
 
 var superblockService = new SuperblockService(fs);
 var blockGroupDescriptorService = new BlockGroupDescriptorService(fs, superblockService);
-using var disk = new Disk(fs, superblockService, blockGroupDescriptorService);
+var inodeService = new InodeService(fs, superblockService, blockGroupDescriptorService);
+using var disk = new Disk(fs, superblockService, inodeService);
 var fileSystem = new FileSystem(disk);
 
 var directories = fileSystem.ListRootDirectory().ToList();

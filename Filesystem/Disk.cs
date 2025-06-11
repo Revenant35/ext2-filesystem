@@ -4,7 +4,6 @@ using Enums;
 using Mapping;
 using Models;
 using Serialization.Models;
-using Serialization.Serializers;
 using Services;
 using System.Text;
 
@@ -13,7 +12,7 @@ public class Disk : IDisposable, IAsyncDisposable
     private readonly BinaryReader _reader;
     private readonly Stream _stream;
     private readonly ISuperblockService _superblockService;
-    private readonly IBlockGroupDescriptorService _blockGroupDescriptorService;
+    private readonly IInodeService _inodeService;
     private readonly BinaryWriter _writer;
 
     public long BlockBitmapSizeBytes => _superblockService.BlockSize;
@@ -37,17 +36,16 @@ public class Disk : IDisposable, IAsyncDisposable
     public long GetInodeBitmapOffset(long blockGroupNumber) => GetBlockBitmapOffset(blockGroupNumber) + BlockBitmapSizeBytes;
     public long GetInodeTableOffset(long blockGroupNumber) => GetInodeBitmapOffset(blockGroupNumber) + InodeBitmapSizeBytes;
     public long GetDataBlocksOffset(long blockGroupNumber) => GetInodeTableOffset(blockGroupNumber) + InodeTableSizeBytes;
-
     
     public Disk(
         Stream stream,
         ISuperblockService superblockService,
-        IBlockGroupDescriptorService blockGroupDescriptorService
+        IInodeService inodeService
     )
     {
         _stream = stream;
         _superblockService = superblockService;
-        _blockGroupDescriptorService = blockGroupDescriptorService;
+        _inodeService = inodeService;
         _reader = new BinaryReader(_stream, Encoding.UTF8, true);
         _writer = new BinaryWriter(_stream, Encoding.UTF8, true);
     }
@@ -77,7 +75,7 @@ public class Disk : IDisposable, IAsyncDisposable
 
     #region Directory I/O
     
-    public IEnumerable<InodeDirectory> ReadRootDirectoryEntries() => ReadDirectoryEntries(ReadRootInode());
+    public IEnumerable<InodeDirectory> ReadRootDirectoryEntries() => ReadDirectoryEntries(_inodeService.ReadRootInode());
 
     public IEnumerable<InodeDirectory> ReadDirectoryEntries(Inode inode)
     {
@@ -165,43 +163,6 @@ public class Disk : IDisposable, IAsyncDisposable
                 yield return subPtr;
             }
         }
-    }
-
-    #endregion
-
-
-    #region Inode I/O
-
-    public Inode ReadInode(uint inodeIndex)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(inodeIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(inodeIndex, _superblockService.InodeCount);
-
-        _stream.Position = GetInodeOffset(inodeIndex);
-        return _reader.ReadInode();
-    }
-
-    public Inode ReadRootInode() => ReadInode(2);
-
-    public void WriteInode(Inode inode, uint index)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(index);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _superblockService.InodeCount);
-
-        _stream.Position = GetInodeOffset(index);
-        _writer.Write(inode);
-    }
-
-    private long GetInodeOffset(uint index)
-    {
-        var groupIndex = (index - 1) / _superblockService.InodesPerGroup;
-        var localIndex = (index - 1) % _superblockService.InodesPerGroup;
-
-        var descriptor = _blockGroupDescriptorService.BlockGroupDescriptors[(int)groupIndex];
-        var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
-
-        var inodeTableOffset = GetBlockOffset(inodeTableBlock);
-        return inodeTableOffset + localIndex * _superblockService.InodeSize;
     }
 
     #endregion
