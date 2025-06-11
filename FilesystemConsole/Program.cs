@@ -45,6 +45,7 @@ public class Program
         services.AddAutoMapper(typeof(SuperblockProfile));
         services.AddAutoMapper(typeof(InodeProfile));
         services.AddAutoMapper(typeof(BlockGroupDescriptorProfile));
+        services.AddAutoMapper(typeof(InodeDirectoryProfile));
 
         services.AddSingleton<ISuperblockService, SuperblockService>();
         services.AddSingleton<IBlockGroupDescriptorService, BlockGroupDescriptorService>();

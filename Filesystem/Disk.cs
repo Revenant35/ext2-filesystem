@@ -1,7 +1,7 @@
 namespace Filesystem;
 
+using AutoMapper;
 using Enums;
-using Mapping;
 using Models;
 using Services;
 using System.Text;
@@ -13,6 +13,7 @@ public class Disk : IDisposable, IAsyncDisposable
     private readonly ISuperblockService _superblockService;
     private readonly IInodeService _inodeService;
     private readonly BinaryWriter _writer;
+    private readonly IMapper _mapper;
 
     public long BlockBitmapSizeBytes => _superblockService.BlockSize;
     public long InodeBitmapSizeBytes => _superblockService.BlockSize;
@@ -39,12 +40,14 @@ public class Disk : IDisposable, IAsyncDisposable
     public Disk(
         Stream stream,
         ISuperblockService superblockService,
-        IInodeService inodeService
+        IInodeService inodeService,
+        IMapper mapper
     )
     {
         _stream = stream;
         _superblockService = superblockService;
         _inodeService = inodeService;
+        _mapper = mapper;
         _reader = new BinaryReader(_stream, Encoding.UTF8, true);
         _writer = new BinaryWriter(_stream, Encoding.UTF8, true);
     }
@@ -127,7 +130,7 @@ public class Disk : IDisposable, IAsyncDisposable
                 Name = nameBytes,
             };
 
-            yield return binary.ToInodeDirectory();
+            yield return _mapper.Map<InodeDirectory>(binary);
         }
     }
 

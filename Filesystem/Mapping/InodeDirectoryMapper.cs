@@ -1,25 +1,21 @@
 namespace Filesystem.Mapping;
 
+using AutoMapper;
 using Enums;
 using Models;
 using System.Text;
 
-public static class InodeDirectoryMapper
+public class InodeDirectoryProfile : Profile
 {
-    public static BinaryInodeDirectory ToBinaryInodeDirectory(this InodeDirectory directory) => new()
+    public InodeDirectoryProfile()
     {
-        InodeAddress = directory.InodeAddress,
-        EntrySize = directory.EntrySize,
-        NameLength = (byte)directory.Name.Length,
-        Type = (byte)directory.Type,
-        Name = Encoding.Latin1.GetBytes(directory.Name),
-    };
-
-    public static InodeDirectory ToInodeDirectory(this BinaryInodeDirectory binary) => new()
-    {
-        InodeAddress = binary.InodeAddress,
-        EntrySize = binary.EntrySize,
-        Type = (InodeDirectoryType)binary.Type,
-        Name = Encoding.Latin1.GetString(binary.Name),
-    };
+        CreateMap<BinaryInodeDirectory, InodeDirectory>()
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => Encoding.Latin1.GetString(src.Name)))
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => (InodeDirectoryType)src.Type));
+        
+        CreateMap<InodeDirectory, BinaryInodeDirectory>()
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => Encoding.Latin1.GetBytes(src.Name)))
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => (byte)src.Type))
+            .ForMember(dest => dest.NameLength, opt => opt.MapFrom(src => (byte)src.Name.Length));
+    }
 }

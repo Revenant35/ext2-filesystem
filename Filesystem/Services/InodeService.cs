@@ -3,7 +3,6 @@ namespace Filesystem.Services;
 using AutoMapper;
 using Enums;
 using Models;
-using Serialization.Serializers;
 using System.Text;
 
 public class InodeService : IInodeService
