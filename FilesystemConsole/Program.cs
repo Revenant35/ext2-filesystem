@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using Filesystem;
+using Filesystem.Services;
 
 using var fs = new FileStream("ext2.img", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 if (!fs.CanRead || !fs.CanWrite)
@@ -9,7 +10,8 @@ if (!fs.CanRead || !fs.CanWrite)
     return;
 }
 
-using var disk = new Disk(fs);
+var superblockService = new SuperblockService(fs);
+using var disk = new Disk(fs, superblockService);
 var fileSystem = new FileSystem(disk);
 
 var directories = fileSystem.ListRootDirectory().ToList();

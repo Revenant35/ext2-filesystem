@@ -5,76 +5,54 @@ using Mapping;
 using Models;
 using Serialization.Models;
 using Serialization.Serializers;
+using Services;
 using System.Text;
 
 public class Disk : IDisposable, IAsyncDisposable
 {
-    public const long SuperblockOffset = 1024;
     private readonly BinaryReader _reader;
     private readonly Stream _stream;
+    private readonly SuperblockService _superblockService;
     private readonly BinaryWriter _writer;
 
-    public Disk(Stream stream)
-    {
-        _stream = stream;
-        _reader = new BinaryReader(_stream, Encoding.UTF8, true);
-        _writer = new BinaryWriter(_stream, Encoding.UTF8, true);
-
-        Superblock = ReadSuperblock();
-        BlockGroupDescriptors = ReadBlockGroupDescriptorTable();
-    }
-
-    public Superblock Superblock { get; }
     public BlockGroupDescriptor[] BlockGroupDescriptors { get; }
+        
+    public long BlockBitmapSizeBytes => _superblockService.BlockSize;
+    public long InodeBitmapSizeBytes => _superblockService.BlockSize;
+    public long InodeTableSizeBytes => _superblockService.InodesPerGroup * _superblockService.InodeSize;
+    public long DataBlocksSizeBytes => _superblockService.BlocksPerGroup * _superblockService.BlockSize - InodeTableSizeBytes - InodeBitmapSizeBytes - BlockBitmapSizeBytes;
+    public uint BlockGroupCount => (uint)Math.Ceiling(_superblockService.BlockCount / (double)_superblockService.BlocksPerGroup);
 
-    public uint InodeCount => Superblock.InodeCount;
-    public uint BlockCount => Superblock.BlockCount;
-    public uint BlockSize => Superblock.BlockSize;
-    public uint FragmentSize => Superblock.FragmentSize;
-    public uint BlocksPerGroup => Superblock.BlocksPerGroup;
-    public uint InodesPerGroup => Superblock.InodesPerGroup;
-    public uint BlockGroupCount => (uint)Math.Ceiling(BlockCount / (double)BlocksPerGroup);
-
-    public long BlockBitmapSizeBytes => BlockSize;
-    public long InodeBitmapSizeBytes => BlockSize;
-    public long InodeTableSizeBytes => InodesPerGroup * Superblock.InodeSize;
-    public long DataBlocksSizeBytes => BlocksPerGroup * BlockSize - InodeTableSizeBytes - InodeBitmapSizeBytes - BlockBitmapSizeBytes;
-    private long BlockGroupDescriptorTableOffset => BlockSize == 1024 ? 2 * BlockSize : BlockSize;
-    private long BlockGroupDescriptorCount => BlockSize / BinaryBlockGroupDescriptor.SizeOnDiskInBytes;
+    private long BlockGroupDescriptorCount => _superblockService.BlockSize / BinaryBlockGroupDescriptor.SizeOnDiskInBytes;
+    private long BlockGroupDescriptorTableOffset => _superblockService.BlockSize == 1024 ? 2 * _superblockService.BlockSize : _superblockService.BlockSize;
+        
     public long GetBlockBitmapOffset(long blockGroupNumber)
     {
         if (blockGroupNumber == 0)
         {
-            return BlockGroupDescriptorTableOffset + BlockSize;
+            return BlockGroupDescriptorTableOffset + _superblockService.BlockSize;
         }
 
-        return blockGroupNumber * BlocksPerGroup * BlockSize;
+        return blockGroupNumber * _superblockService.BlocksPerGroup * _superblockService.BlockSize;
     }
 
     public long GetInodeBitmapOffset(long blockGroupNumber) => GetBlockBitmapOffset(blockGroupNumber) + BlockBitmapSizeBytes;
     public long GetInodeTableOffset(long blockGroupNumber) => GetInodeBitmapOffset(blockGroupNumber) + InodeBitmapSizeBytes;
     public long GetDataBlocksOffset(long blockGroupNumber) => GetInodeTableOffset(blockGroupNumber) + InodeTableSizeBytes;
 
-
-    #region Superblock I/O
-
-    public Superblock ReadSuperblock()
+    
+    public Disk(Stream stream, SuperblockService superblockService)
     {
-        _stream.Seek(SuperblockOffset, SeekOrigin.Begin);
+        _stream = stream;
+        _superblockService = superblockService;
+        _reader = new BinaryReader(_stream, Encoding.UTF8, true);
+        _writer = new BinaryWriter(_stream, Encoding.UTF8, true);
 
-        return _reader.ReadSuperblock();
+        _superblockService.ReadSuperblock();
+        BlockGroupDescriptors = ReadBlockGroupDescriptorTable();
     }
 
-    // public void WriteSuperblock(Superblock superblock)
-    // {
-    //     _stream.Seek(SuperblockOffset, SeekOrigin.Begin);
-    //
-    //     _writer.Write(superblock);
-    //
-    //     Superblock = superblock;
-    // }
 
-    #endregion
 
 
     #region BlockGroupDescriptor I/O
@@ -113,19 +91,19 @@ public class Disk : IDisposable, IAsyncDisposable
     public byte[] ReadBlock(uint blockNumber)
     {
         _stream.Seek(GetBlockOffset(blockNumber), SeekOrigin.Begin);
-        return _reader.ReadBytes((int)BlockSize);
+        return _reader.ReadBytes((int)_superblockService.BlockSize);
     }
 
     public void WriteBlock(uint blockNumber, byte[] data)
     {
-        if (data.Length != BlockSize)
-            throw new ArgumentException($"Data must be exactly {BlockSize} bytes long.", nameof(data));
+        if (data.Length != _superblockService.BlockSize)
+            throw new ArgumentException($"Data must be exactly {_superblockService.BlockSize} bytes long.", nameof(data));
 
         _stream.Seek(GetBlockOffset(blockNumber), SeekOrigin.Begin);
         _writer.Write(data);
     }
 
-    private long GetBlockOffset(uint blockNumber) => blockNumber * BlockSize;
+    private long GetBlockOffset(uint blockNumber) => blockNumber * _superblockService.BlockSize;
 
     #endregion
 
@@ -210,7 +188,7 @@ public class Disk : IDisposable, IAsyncDisposable
         using var stream = new MemoryStream(block);
         using var reader = new BinaryReader(stream, Encoding.UTF8, false);
         
-        for (var i = 0; i < BlockSize / 4; i++)
+        for (var i = 0; i < _superblockService.BlockSize / 4; i++)
         {
             var ptr = reader.ReadUInt32();
             if (ptr == 0) continue;
@@ -230,7 +208,7 @@ public class Disk : IDisposable, IAsyncDisposable
     public Inode ReadInode(uint inodeIndex)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(inodeIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(inodeIndex, InodeCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(inodeIndex, _superblockService.InodeCount);
 
         _stream.Position = GetInodeOffset(inodeIndex);
         return _reader.ReadInode();
@@ -241,7 +219,7 @@ public class Disk : IDisposable, IAsyncDisposable
     public void WriteInode(Inode inode, uint index)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(index);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, InodeCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _superblockService.InodeCount);
 
         _stream.Position = GetInodeOffset(index);
         _writer.Write(inode);
@@ -249,14 +227,14 @@ public class Disk : IDisposable, IAsyncDisposable
 
     private long GetInodeOffset(uint index)
     {
-        var groupIndex = (index - 1) / InodesPerGroup;
-        var localIndex = (index - 1) % InodesPerGroup;
+        var groupIndex = (index - 1) / _superblockService.InodesPerGroup;
+        var localIndex = (index - 1) % _superblockService.InodesPerGroup;
 
         var descriptor = BlockGroupDescriptors[(int)groupIndex];
         var inodeTableBlock = descriptor.InodeTableStartingBlockAddress;
 
         var inodeTableOffset = GetBlockOffset(inodeTableBlock);
-        return inodeTableOffset + localIndex * Superblock.InodeSize;
+        return inodeTableOffset + localIndex * _superblockService.InodeSize;
     }
 
     #endregion
@@ -265,7 +243,7 @@ public class Disk : IDisposable, IAsyncDisposable
     #region Block Bitmap I/O
 
     public Bitmap ReadBlockBitmap(BlockGroupDescriptor descriptor) =>
-        new(ReadBlock(descriptor.BlockUsageBitmapBlockAddress), (int)BlocksPerGroup);
+        new(ReadBlock(descriptor.BlockUsageBitmapBlockAddress), (int)_superblockService.BlocksPerGroup);
 
     public void WriteBlockBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
         WriteBlock(descriptor.BlockUsageBitmapBlockAddress, bitmap.ToByteArray());
@@ -276,7 +254,7 @@ public class Disk : IDisposable, IAsyncDisposable
     #region Inode Bitmap I/O
 
     public Bitmap ReadInodeBitmap(BlockGroupDescriptor descriptor) =>
-        new(ReadBlock(descriptor.InodeUsageBitmapBlockAddress), (int)InodesPerGroup);
+        new(ReadBlock(descriptor.InodeUsageBitmapBlockAddress), (int)_superblockService.InodesPerGroup);
 
     public void WriteInodeBitmap(BlockGroupDescriptor descriptor, Bitmap bitmap) =>
         WriteBlock(descriptor.InodeUsageBitmapBlockAddress, bitmap.ToByteArray());
