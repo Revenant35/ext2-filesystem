@@ -1,3 +1,11 @@
+/**
+ * @file Superblock.h
+ * @brief Defines the structure of the ext2 superblock and related constants.
+ *
+ * The superblock is a critical data structure in an ext2 filesystem. It contains
+ * metadata about the filesystem as a whole, such as the total number of inodes and
+ * blocks, block size, filesystem state, and feature flags.
+ */
 #ifndef SUPERBLOCK_H
 #define SUPERBLOCK_H
 
@@ -43,6 +51,13 @@
 #define EXT2_FEATURE_RO_COMPAT_DIR_NLINK    0x0020 // Directory NLINK support
 #define EXT2_FEATURE_RO_COMPAT_EXTRA_ISIZE  0x0040 // Extra inode size
 
+/**
+ * @brief The ext2 superblock structure (1024 bytes).
+ *
+ * This structure holds all the metadata about an ext2 filesystem.
+ * It is located at a fixed offset (1024 bytes) from the beginning of the
+ * block device or image file.
+ */
 struct ext2_super_block {
     uint32_t   s_inodes_count;         // Total number of inodes in file system
     uint32_t   s_blocks_count;         // Total number of blocks in file system
@@ -136,7 +151,20 @@ struct ext2_super_block {
     uint8_t    s_padding[300];         // Padding to 1024 bytes
 };
 
+/**
+ * @brief Reads the superblock from an open file stream into memory.
+ * @param fp Pointer to an open FILE stream (e.g., from an ext2 image file).
+ * @param sb Pointer to an ext2_super_block structure to populate.
+ * @return 0 on success, non-zero on failure (e.g., I/O error, magic number mismatch).
+ */
 int read_superblock(FILE *fp, struct ext2_super_block *sb);
+
+/**
+ * @brief Writes the superblock from memory to an open file stream.
+ * @param fp Pointer to an open FILE stream (e.g., for an ext2 image file).
+ * @param sb Pointer to an ext2_super_block structure containing the data to write.
+ * @return 0 on success, non-zero on failure (e.g., I/O error, invalid superblock data).
+ */
 int write_superblock(FILE *fp, const struct ext2_super_block *sb);
 
 #endif //SUPERBLOCK_H
