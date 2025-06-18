@@ -2,31 +2,43 @@
 #define C_EXT2_FILESYSTEM_INODE_H
 
 #include <stdint.h>
+#include "Superblock.h"
+#include "BlockGroup.h"
 
-#define EXT2_N_BLOCKS 15
+#define EXT2_N_BLOCKS 15 //!< Number of block pointers in an inode (12 direct, 1 indirect, 1 dbl-indirect, 1 trpl-indirect)
 
+/**
+ * @brief The ext2 inode structure (on-disk, 128 bytes for rev 0, potentially larger for rev 1+).
+ *
+ * This structure contains all metadata for a file or directory, including mode,
+ * ownership, size, timestamps, and pointers to data blocks.
+ */
 struct ext2_inode {
-    uint16_t i_mode;        // File mode (type and permissions)
-    uint16_t i_uid;         // Low 16 bits of Owner Uid
-    uint32_t i_size;        // Size in bytes
-    uint32_t i_atime;       // Access time (POSIX time)
-    uint32_t i_ctime;       // Creation time (POSIX time)
-    uint32_t i_mtime;       // Modification time (POSIX time)
-    uint32_t i_dtime;       // Deletion time (POSIX time)
-    uint16_t i_gid;         // Low 16 bits of Group Id
-    uint16_t i_links_count; // Links count
-    uint32_t i_blocks;      // Blocks count (in 512-byte units)
-    uint32_t i_flags;       // File flags
-    uint32_t i_osd1;        // OS dependent 1
+    uint16_t i_mode;        //!< File mode (type: regular, directory, symlink, etc., and permissions).
+    uint16_t i_uid;         //!< Low 16 bits of Owner User ID.
+    uint32_t i_size;        //!< File size in bytes. For symbolic links, this is the length of the target path.
+    uint32_t i_atime;       //!< Last access time (POSIX time: seconds since epoch).
+    uint32_t i_ctime;       //!< Inode change time (POSIX time) - NOT file creation time in traditional sense.
+    uint32_t i_mtime;       //!< Last modification time (POSIX time).
+    uint32_t i_dtime;       //!< Deletion time (POSIX time). Set when the inode is marked as deleted.
+    uint16_t i_gid;         //!< Low 16 bits of Group ID.
+    uint16_t i_links_count; //!< Number of hard links to this inode. When 0, inode is free.
+    uint32_t i_blocks;      //!< Number of 512-byte blocks allocated to this file (disk usage).
+    uint32_t i_flags;       //!< File flags (see EXT2_*_FL defines).
+    uint32_t i_osd1;        //!< OS Dependent Value 1.
 
-    uint32_t i_block[EXT2_N_BLOCKS]; // Pointers to blocks (12 direct, 1 indirect, 1 dbl-indirect, 1 trpl-indirect)
+    uint32_t i_block[EXT2_N_BLOCKS]; //!< Array of block pointers. First 12 are direct blocks.
+                                     //!< i_block[12] is a singly indirect block pointer.
+                                     //!< i_block[13] is a doubly indirect block pointer.
+                                     //!< i_block[14] is a triply indirect block pointer.
 
-    uint32_t i_generation;  // File version (for NFS)
-    uint32_t i_file_acl;    // File ACL
-    uint32_t i_dir_acl;     // Directory ACL (or i_size_high for regular files > 2GB if EXT2_FEATURE_RO_COMPAT_LARGE_FILE)
-    uint32_t i_faddr;       // Fragment address (deprecated)
+    uint32_t i_generation;  //!< File version (used by NFS).
+    uint32_t i_file_acl;    //!< File Access Control List (block number). If 0, no ACL.
+    uint32_t i_dir_acl;     //!< Directory ACL (block number). For regular files, this can be i_size_high
+                            //!< (high 32 bits of file size) if EXT2_FEATURE_RO_COMPAT_LARGE_FILE is set.
+    uint32_t i_faddr;       //!< Fragment address (obsolete, not used in modern ext2).
 
-    // OS dependent 2 (12 bytes)
+    /** @brief OS dependent 2 structure (12 bytes). Content varies by OS. */
     union {
         struct {
             uint8_t  l_i_frag;  // Fragment number (Linux)
@@ -102,5 +114,30 @@ struct ext2_inode {
 #define EXT4_EA_INODE_FL     0x00200000 // Inode used for large EA (Ext4)
 #define EXT4_EOFBLOCKS_FL    0x00400000 // Blocks allocated beyond EOF (Ext4)
 #define EXT2_RESERVED_FL     0x80000000 // Reserved for ext2 library
+
+/**
+ * @brief Reads an inode from the filesystem into memory.
+ *
+ * @param fp Pointer to an open FILE stream for the filesystem image.
+ * @param sb Pointer to the filesystem's superblock.
+ * @param gdt Pointer to the array of block group descriptors (the GDT).
+ * @param inode_num The number of the inode to read (1-based).
+ * @param inode_out Pointer to an `ext2_inode` structure to populate with the read data.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int read_inode(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt, uint32_t inode_num, struct ext2_inode *inode_out);
+
+/**
+ * @brief Writes an inode from memory to the filesystem.
+ *
+ * @param fp Pointer to an open FILE stream for the filesystem image.
+ * @param sb Pointer to the filesystem's superblock.
+ * @param gdt Pointer to the array of block group descriptors (the GDT).
+ * @param inode_num The number of the inode to write (1-based).
+ * @param inode_in Pointer to an `ext2_inode` structure containing the data to write.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int write_inode(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt, uint32_t inode_num, const struct ext2_inode *inode_in);
+
 
 #endif //C_EXT2_FILESYSTEM_INODE_H
