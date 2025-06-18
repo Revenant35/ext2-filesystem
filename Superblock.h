@@ -10,6 +10,7 @@
 #define SUPERBLOCK_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define EXT2_SUPER_MAGIC 0xEF53
 #define EXT2_SUPERBLOCK_OFFSET 1024 // Superblock is always at byte 1024

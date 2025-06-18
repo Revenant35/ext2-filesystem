@@ -4,6 +4,49 @@
 #include <string.h>
 #include "Superblock.h"
 #include "BlockGroup.h"
+#include "Directory.h" // For list_directory_entries
+#include "Inode.h"     // For EXT2_ROOT_INO constant
+
+// Function to list the root directory entries
+void list_root_directory(const char *filesystem_image_path) {
+    printf("\n--- Listing Root Directory Entries from %s ---\n", filesystem_image_path);
+
+    FILE *fp = fopen(filesystem_image_path, "rb");
+    if (fp == NULL) {
+        perror("Error opening filesystem image for root directory listing");
+        return;
+    }
+
+    struct ext2_super_block sb;
+    if (read_superblock(fp, &sb) != 0) {
+        fprintf(stderr, "Failed to read superblock for root directory listing.\n");
+        fclose(fp);
+        return;
+    }
+
+    uint32_t num_groups_read = 0;
+    struct ext2_group_desc *gdt = read_all_group_descriptors(fp, &sb, &num_groups_read);
+    if (gdt == NULL) {
+        fprintf(stderr, "Failed to read block group descriptors for root directory listing.\n");
+        fclose(fp);
+        return;
+    }
+
+    // List entries for the root directory (inode 2)
+    // EXT2_ROOT_INO is defined as 2 in ext2_fs.h, commonly used in ext2 implementations.
+    // If not available in your Inode.h, you might need to define it or use 2 directly.
+    // Assuming Inode.h might have it or it's a common understanding.
+    int list_status = list_directory_entries(fp, &sb, gdt, EXT2_ROOT_INO);
+    if (list_status != 0) {
+        fprintf(stderr, "Failed to list root directory entries. Error code: %d\n", list_status);
+    }
+
+    free(gdt);
+    if (fclose(fp) != 0) {
+        perror("Error closing filesystem image after listing root directory");
+    }
+    printf("--- Root directory listing complete. ---\n");
+}
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -165,6 +208,12 @@ int main(int argc, char *argv[]) {
 
     free(gdt); // Free the allocated GDT memory
     printf("--- Block group descriptor processing complete. ---\n");
+
+    // Call the function to list the root directory from the original image
+    // This is done after closing fp_orig_img and freeing gdt from the main scope's operations.
+    // The list_root_directory function will reopen the file and re-read sb and gdt.
+    // This keeps it self-contained. Alternatively, we could pass sb and gdt if fp_orig_img was still open.
+    list_root_directory(filename);
 
     return EXIT_SUCCESS;
 }

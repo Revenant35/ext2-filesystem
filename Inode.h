@@ -2,10 +2,14 @@
 #define C_EXT2_FILESYSTEM_INODE_H
 
 #include <stdint.h>
-#include "Superblock.h"
-#include "BlockGroup.h"
+#include <stdio.h>
+
+struct ext2_super_block;
+struct ext2_group_desc;
 
 #define EXT2_N_BLOCKS 15 //!< Number of block pointers in an inode (12 direct, 1 indirect, 1 dbl-indirect, 1 trpl-indirect)
+
+#define EXT2_ROOT_INO 2          //!< Inode number for the root directory
 
 /**
  * @brief The ext2 inode structure (on-disk, 128 bytes for rev 0, potentially larger for rev 1+).
