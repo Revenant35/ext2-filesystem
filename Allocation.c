@@ -18,7 +18,7 @@ int allocate_inode(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc
     }
 
     const uint32_t block_size = get_block_size(sb);
-    char *bitmap_buffer = malloc(block_size);
+    uint8_t *bitmap_buffer = malloc(block_size);
     if (bitmap_buffer == NULL) {
         return -2; // Memory allocation failure
     }
@@ -33,7 +33,12 @@ int allocate_inode(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc
                 return -3;
             }
 
-            const int free_bit_idx = find_first_free_bit(bitmap_buffer, sb->s_inodes_per_group);
+            uint32_t free_bit_idx = 0;
+            if (find_first_free_bit(bitmap_buffer, sb->s_inodes_per_group, &free_bit_idx) != SUCCESS) {
+                fprintf(stderr, "Failed to find a free block.");
+                return ERROR;
+            }
+
             if (free_bit_idx != INVALID_PARAMETER) {
                 // Mark bit as used
                 set_bit(bitmap_buffer, free_bit_idx);
@@ -80,7 +85,7 @@ int allocate_block(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc
     }
 
     const uint32_t block_size = get_block_size(sb);
-    char *bitmap_buffer = malloc(block_size);
+    uint8_t *bitmap_buffer = malloc(block_size);
     if (bitmap_buffer == NULL) {
         return -2; // Memory allocation failure
     }
@@ -95,39 +100,42 @@ int allocate_block(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc
                 return -3;
             }
 
-            const int free_bit_idx = find_first_free_bit(bitmap_buffer, sb->s_blocks_per_group);
-            if (free_bit_idx != INVALID_PARAMETER) {
-                // Mark bit as used
-                set_bit(bitmap_buffer, free_bit_idx);
-
-                // Write bitmap back to disk
-                if (write_bitmap(fp, sb, block_bitmap_block_id, bitmap_buffer) != 0) {
-                    fprintf(stderr, "Failed to write updated block bitmap for group %u\n", group_idx);
-                    free(bitmap_buffer);
-                    return -4;
-                }
-
-                // Update counts
-                gdt[group_idx].bg_free_blocks_count--;
-                sb->s_free_blocks_count--;
-
-                // Write updated group descriptor and superblock back to disk
-                if (write_single_group_descriptor(fp, sb, group_idx, &gdt[group_idx]) != 0) {
-                    fprintf(stderr, "Failed to write updated group descriptor for group %u\n", group_idx);
-                    free(bitmap_buffer);
-                    return -5;
-                }
-                if (write_superblock(fp, sb) != 0) {
-                    fprintf(stderr, "Failed to write updated superblock\n");
-                    free(bitmap_buffer);
-                    return -6;
-                }
-
-                // The first data block is at sb->s_first_data_block (usually 0 or 1)
-                *new_block_num_out = group_idx * sb->s_blocks_per_group + sb->s_first_data_block + free_bit_idx;
-                free(bitmap_buffer);
-                return 0; // Success
+            uint32_t free_bit_idx = 0;
+            if (find_first_free_bit(bitmap_buffer, sb->s_inodes_per_group, &free_bit_idx) != SUCCESS) {
+                fprintf(stderr, "Failed to find a free block.");
+                return ERROR;
             }
+
+            // Mark bit as used
+            set_bit(bitmap_buffer, free_bit_idx);
+
+            // Write bitmap back to disk
+            if (write_bitmap(fp, sb, block_bitmap_block_id, bitmap_buffer) != 0) {
+                fprintf(stderr, "Failed to write updated block bitmap for group %u\n", group_idx);
+                free(bitmap_buffer);
+                return -4;
+            }
+
+            // Update counts
+            gdt[group_idx].bg_free_blocks_count--;
+            sb->s_free_blocks_count--;
+
+            // Write updated group descriptor and superblock back to disk
+            if (write_single_group_descriptor(fp, sb, group_idx, &gdt[group_idx]) != 0) {
+                fprintf(stderr, "Failed to write updated group descriptor for group %u\n", group_idx);
+                free(bitmap_buffer);
+                return -5;
+            }
+            if (write_superblock(fp, sb) != 0) {
+                fprintf(stderr, "Failed to write updated superblock\n");
+                free(bitmap_buffer);
+                return -6;
+            }
+
+            // The first data block is at sb->s_first_data_block (usually 0 or 1)
+            *new_block_num_out = group_idx * sb->s_blocks_per_group + sb->s_first_data_block + free_bit_idx;
+            free(bitmap_buffer);
+            return 0; // Success
         }
     }
 
