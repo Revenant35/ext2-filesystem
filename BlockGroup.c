@@ -101,6 +101,31 @@ int read_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, ui
     return 0;
 }
 
+int write_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, uint32_t group_index,
+    const struct ext2_group_desc *group_desc_in) {
+    if (fp == NULL || sb == NULL || group_desc_in == NULL) {
+        return -1;
+    }
+
+    const off_t offset = get_descriptor_offset(sb, group_index);
+
+    if (fseeko(fp, offset, SEEK_SET) != 0) {
+        perror("Error (write_single_group_descriptor): Seeking to group descriptor offset");
+        return -2;
+    }
+
+    if (fwrite(group_desc_in, sizeof(struct ext2_group_desc), 1, fp) != 1) {
+        if (ferror(fp)) {
+            perror("Error (write_single_group_descriptor): Writing group descriptor");
+        } else {
+            fprintf(stderr, "Error (write_single_group_descriptor): fwrite did not write the expected number of items.\n");
+        }
+        return -3;
+    }
+
+    return 0;
+}
+
 struct ext2_group_desc *read_all_group_descriptors(FILE *fp, const struct ext2_super_block *sb,
                                                    uint32_t *num_groups_read_out) {
     if (fp == NULL || sb == NULL || num_groups_read_out == NULL) {

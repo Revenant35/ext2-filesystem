@@ -9,4 +9,6 @@ add_executable(c_ext2_filesystem
         BlockGroup.c
         Inode.c
         Directory.c
+        Bitmap.c
+        Allocation.c
 )

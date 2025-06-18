@@ -8,6 +8,43 @@
 #include "Inode.h"     // For EXT2_ROOT_INO constant
 
 // Function to list the root directory entries
+void test_create_directory(const char *filesystem_image_path) {
+    printf("\n--- Testing Directory Creation ---\n");
+    FILE *fp = fopen(filesystem_image_path, "r+");
+    if (!fp) {
+        perror("Failed to open filesystem image for writing");
+        return;
+    }
+
+    struct ext2_super_block sb;
+    if (read_superblock(fp, &sb) != 0) {
+        fclose(fp);
+        return;
+    }
+
+    uint32_t num_groups;
+    struct ext2_group_desc *gdt = read_all_group_descriptors(fp, &sb, &num_groups);
+    if (!gdt) {
+        fclose(fp);
+        return;
+    }
+
+    printf("Attempting to create '/new_dir'...\n");
+    uint32_t new_inode;
+    if (create_directory(fp, &sb, gdt, num_groups, EXT2_ROOT_INO, "new_dir", &new_inode) == 0) {
+        printf("Successfully created '/new_dir' with inode %u\n", new_inode);
+    } else {
+        fprintf(stderr, "Failed to create directory.\n");
+    }
+
+    printf("\n--- Listing Root Directory After Creation ---\n");
+    list_directory_entries(fp, &sb, gdt, EXT2_ROOT_INO);
+
+    free(gdt);
+    fclose(fp);
+    printf("--- Test Complete ---\n");
+}
+
 void list_root_directory(const char *filesystem_image_path) {
     printf("\n--- Listing Root Directory Entries from %s ---\n", filesystem_image_path);
 
@@ -215,5 +252,7 @@ int main(int argc, char *argv[]) {
     // This keeps it self-contained. Alternatively, we could pass sb and gdt if fp_orig_img was still open.
     list_root_directory(filename);
 
-    return EXIT_SUCCESS;
+    test_create_directory(filename);
+
+    return 0;
 }
