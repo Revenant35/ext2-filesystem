@@ -136,4 +136,7 @@ struct ext2_super_block {
     uint8_t    s_padding[300];         // Padding to 1024 bytes
 };
 
+int read_superblock(FILE *fp, struct ext2_super_block *sb);
+int write_superblock(FILE *fp, const struct ext2_super_block *sb);
+
 #endif //SUPERBLOCK_H
