@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h> // For EXIT_FAILURE, EXIT_SUCCESS
+#include <stdint.h>   // For uint32_t, uint16_t, etc.
+#include <string.h>   // For memcmp
 #include "Superblock.h" // For ext2_super_block structure
 
 
@@ -81,5 +83,64 @@ int main(int argc, char *argv[]) {
         printf("  Volume name: %.16s\n", sb.s_volume_name);
     }
 
+    // --- Test write_superblock functionality ---
+    const char *output_filename = "test_output.img";
+    struct ext2_super_block sb_read_back;
+    int read_back_status;
+
+    printf("\n--- Testing write_superblock to %s ---\n", output_filename);
+
+    // Open the output file for writing and reading (wb+)
+    printf("Attempting to open output file: %s (mode wb+)\n", output_filename);
+    FILE *fp_out = fopen(output_filename, "wb+");
+    if (fp_out == NULL) {
+        perror("Error opening output file for write test");
+        return EXIT_FAILURE; // Critical error, cannot proceed with write test
+    }
+
+    // Write the original superblock to the new file
+    printf("Attempting to write superblock to %s\n", output_filename);
+    int write_status = write_superblock(fp_out, &sb);
+    if (write_status != 0) {
+        fprintf(stderr, "Failed to write superblock to %s. Error code: %d\n", output_filename, write_status);
+        // Still need to close fp_out before exiting
+    } else {
+        printf("Superblock written successfully to %s.\n", output_filename);
+
+        // Now, read it back from the same file
+        printf("Attempting to read back superblock from %s\n", output_filename);
+        // read_superblock will fseek from the beginning, so no explicit rewind needed after write
+        read_back_status = read_superblock(fp_out, &sb_read_back);
+        if (read_back_status != 0) {
+            fprintf(stderr, "Failed to read back superblock from %s. Error code: %d\n", output_filename, read_back_status);
+        } else {
+            printf("Superblock read back successfully from %s.\n", output_filename);
+
+            // Compare the original superblock with the one read back
+            if (memcmp(&sb, &sb_read_back, sizeof(struct ext2_super_block)) == 0) {
+                printf("SUCCESS: Original superblock and read-back superblock are identical.\n");
+            } else {
+                fprintf(stderr, "FAILURE: Original superblock and read-back superblock differ!\n");
+                // Optionally, print details of differences here for debugging
+            }
+        }
+    }
+
+    // Close the output file
+    if (fclose(fp_out) != 0) {
+        perror("Error closing output file");
+        // If other operations were successful, this still makes the overall test a failure.
+        if (write_status == 0 && read_back_status == 0) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Determine final exit status based on test outcomes
+    if (write_status != 0 || read_back_status != 0 || memcmp(&sb, &sb_read_back, sizeof(struct ext2_super_block)) != 0) {
+        fprintf(stderr, "--- write_superblock test FAILED. ---\n");
+        return EXIT_FAILURE;
+    }
+
+    printf("--- write_superblock test completed successfully. ---\n");
     return EXIT_SUCCESS;
 }
