@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "globals.h"
+
 /**
  * @brief Calculates the disk offset of a given inode.
  *
@@ -29,13 +31,9 @@ static int calculate_inode_disk_offset(
     const uint16_t inode_size,
     off_t *offset_out
 ) {
-    if (inode_num == 0) {
-        fprintf(stderr, "Error (calc_offset): Inode number 0 is invalid.\n");
-        return -1; // Invalid inode number
-    }
-    if (inode_num > sb->s_inodes_count) {
-        fprintf(stderr, "Error (calc_offset): Inode number %u exceeds total inodes %u.\n", inode_num, sb->s_inodes_count);
-        return -2; // Inode number out of bounds
+    if (inode_num == 0 || inode_num > sb->s_inodes_count) {
+        fprintf(stderr, "Error (calc_offset): Inode number %u must be within range [0, %u].\n", inode_num, sb->s_inodes_count);
+        return INVALID_PARAMETER; // Invalid inode number
     }
     if (inode_size == 0) {
         fprintf(stderr, "Error (calc_offset): Superblock indicates inode_size is 0.\n");
@@ -79,7 +77,7 @@ static int calculate_inode_disk_offset(
 int read_inode(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt, uint32_t inode_num, struct ext2_inode *inode_out) {
     if (fp == NULL || sb == NULL || gdt == NULL || inode_out == NULL) {
         fprintf(stderr, "Error (read_inode): NULL pointer argument provided.\n");
-        return -1;
+        return INVALID_PARAMETER;
     }
 
     // inode_num validity (0 or > s_inodes_count) is checked by calculate_inode_disk_offset
@@ -140,7 +138,7 @@ int read_inode(FILE *fp, const struct ext2_super_block *sb, const struct ext2_gr
 int write_inode(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt, uint32_t inode_num, const struct ext2_inode *inode_in) {
     if (fp == NULL || sb == NULL || gdt == NULL || inode_in == NULL) {
         fprintf(stderr, "Error (write_inode): NULL pointer argument provided.\n");
-        return -1;
+        return INVALID_PARAMETER;
     }
 
     // Similar to read_inode, using sb->s_inode_size for location calculation

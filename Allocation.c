@@ -7,13 +7,14 @@
 #include "Bitmap.h"
 #include "Superblock.h"
 #include "BlockGroup.h"
+#include "globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-int allocate_inode(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc *gdt, uint32_t num_block_groups, uint32_t *new_inode_num_out) {
+int allocate_inode(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc *gdt, const uint32_t num_block_groups, uint32_t *new_inode_num_out) {
     if (fp == NULL || sb == NULL || gdt == NULL || new_inode_num_out == NULL) {
-        return -1; // Invalid arguments
+        return INVALID_PARAMETER;
     }
 
     const uint32_t block_size = get_block_size(sb);
@@ -33,7 +34,7 @@ int allocate_inode(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc
             }
 
             const int free_bit_idx = find_first_free_bit(bitmap_buffer, sb->s_inodes_per_group);
-            if (free_bit_idx != -1) {
+            if (free_bit_idx != INVALID_PARAMETER) {
                 // Mark bit as used
                 set_bit(bitmap_buffer, free_bit_idx);
 
@@ -75,7 +76,7 @@ int allocate_inode(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc
 
 int allocate_block(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc *gdt, uint32_t num_block_groups, uint32_t *new_block_num_out) {
     if (fp == NULL || sb == NULL || gdt == NULL || new_block_num_out == NULL) {
-        return -1; // Invalid arguments
+        return INVALID_PARAMETER;
     }
 
     const uint32_t block_size = get_block_size(sb);
@@ -95,7 +96,7 @@ int allocate_block(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc
             }
 
             const int free_bit_idx = find_first_free_bit(bitmap_buffer, sb->s_blocks_per_group);
-            if (free_bit_idx != -1) {
+            if (free_bit_idx != INVALID_PARAMETER) {
                 // Mark bit as used
                 set_bit(bitmap_buffer, free_bit_idx);
 

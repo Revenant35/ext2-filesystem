@@ -7,6 +7,8 @@
  * ext2 filesystem image.
  */
 #include "BlockGroup.h"
+#include "globals.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,7 +76,7 @@ int read_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, ui
                                  struct ext2_group_desc *group_desc_out) {
     if (fp == NULL || sb == NULL || group_desc_out == NULL) {
         fprintf(stderr, "Error: NULL pointer passed to read_single_group_descriptor.\n");
-        return -1;
+        return INVALID_PARAMETER;
     }
 
     const off_t descriptor_offset = get_descriptor_offset(sb, group_index);
@@ -104,7 +106,7 @@ int read_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, ui
 int write_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, uint32_t group_index,
     const struct ext2_group_desc *group_desc_in) {
     if (fp == NULL || sb == NULL || group_desc_in == NULL) {
-        return -1;
+        return INVALID_PARAMETER;
     }
 
     const off_t offset = get_descriptor_offset(sb, group_index);

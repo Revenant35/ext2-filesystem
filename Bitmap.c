@@ -6,6 +6,8 @@
 #include "Bitmap.h"
 #include "Superblock.h"
 #include "BlockGroup.h"
+#include "globals.h"
+
 #include <stdio.h>
 
 int read_bitmap(FILE *fp, const struct ext2_super_block *sb, uint32_t bitmap_block_id, char *bitmap_buffer) {
@@ -14,7 +16,7 @@ int read_bitmap(FILE *fp, const struct ext2_super_block *sb, uint32_t bitmap_blo
 
     if (fseeko(fp, offset, SEEK_SET) != 0) {
         perror("read_bitmap: fseeko");
-        return -1;
+        return -2;
     }
     if (fread(bitmap_buffer, block_size, 1, fp) != 1) {
         perror("read_bitmap: fread");
@@ -38,7 +40,7 @@ int write_bitmap(FILE *fp, const struct ext2_super_block *sb, uint32_t bitmap_bl
     return 0;
 }
 
-int find_first_free_bit(const char *bitmap_buffer, uint32_t size_in_bits) {
+uint32_t find_first_free_bit(const char *bitmap_buffer, uint32_t size_in_bits) {
     const uint32_t size_in_bytes = (size_in_bits + 7) / 8;
     for (uint32_t byte_idx = 0; byte_idx < size_in_bytes; ++byte_idx) {
         if ((unsigned char)bitmap_buffer[byte_idx] != 0xFF) { // If byte is not all 1s, there's a 0 bit
@@ -52,16 +54,16 @@ int find_first_free_bit(const char *bitmap_buffer, uint32_t size_in_bits) {
             }
         }
     }
-    return -1; // No free bit found
+    return INVALID_PARAMETER; // No free bit found
 }
 
-void set_bit(char *bitmap_buffer, uint32_t bit_index) {
+void set_bit(char *bitmap_buffer, const uint32_t bit_index) {
     const uint32_t byte_idx = bit_index / 8;
     const uint8_t bit_idx_in_byte = bit_index % 8;
-    bitmap_buffer[byte_idx] |= (1 << bit_idx_in_byte);
+    bitmap_buffer[byte_idx] |= 1 << bit_idx_in_byte;
 }
 
-void clear_bit(char *bitmap_buffer, uint32_t bit_index) {
+void clear_bit(char *bitmap_buffer, const uint32_t bit_index) {
     const uint32_t byte_idx = bit_index / 8;
     const uint8_t bit_idx_in_byte = bit_index % 8;
     bitmap_buffer[byte_idx] &= ~(1 << bit_idx_in_byte);

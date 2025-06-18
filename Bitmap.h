@@ -38,7 +38,7 @@ int write_bitmap(FILE *fp, const struct ext2_super_block *sb, uint32_t bitmap_bl
  * @param size_in_bits The total number of bits in the bitmap (e.g., sb->s_inodes_per_group).
  * @return The 0-based index of the first free bit, or -1 if no free bit is found.
  */
-int find_first_free_bit(const char *bitmap_buffer, uint32_t size_in_bits);
+uint32_t find_first_free_bit(const char *bitmap_buffer, uint32_t size_in_bits);
 
 /**
  * @brief Sets a bit in the bitmap (marks it as used, sets to 1).

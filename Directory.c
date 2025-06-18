@@ -14,6 +14,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "globals.h"
+
 // Define for the number of direct blocks in an inode, typically 12
 #define EXT2_NDIR_BLOCKS 12
 
@@ -37,10 +39,10 @@
  *         -6: Failed to read data block.
  */
 int list_directory_entries(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt,
-                           uint32_t dir_inode_num) {
+                           const uint32_t dir_inode_num) {
     if (fp == NULL || sb == NULL || gdt == NULL) {
         fprintf(stderr, "Error (list_directory): NULL pointer argument provided.\n");
-        return -1;
+        return INVALID_PARAMETER;
     }
 
     struct ext2_inode dir_inode;
