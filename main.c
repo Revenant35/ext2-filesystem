@@ -1,14 +1,9 @@
 #include <stdio.h>
-#include <stdlib.h> // For EXIT_FAILURE, EXIT_SUCCESS
-#include <stdint.h>   // For uint32_t, uint16_t, etc.
-#include <string.h>   // For memcmp
-#include "Superblock.h" // For ext2_super_block structure
-
-
-// TODO: Read filesystem into memory
-// TODO: Write filesystem to disk
-// TODO: Read Block Group Descriptors from [stream/disk]
-// TODO: Write Block Group Descriptors to [stream/disk]
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include "Superblock.h"
+#include "BlockGroup.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -19,20 +14,15 @@ int main(int argc, char *argv[]) {
     const char *filename = argv[1];
 
     printf("Attempting to open: %s\n", filename);
-    FILE *fp = fopen(filename, "rb");
-    if (fp == NULL) {
+    FILE *fp_orig_img = fopen(filename, "rb"); // Renamed to avoid confusion later
+    if (fp_orig_img == NULL) {
         perror("Error opening file");
         return EXIT_FAILURE;
     }
 
     printf("Attempting to read superblock from: %s\n", filename);
     struct ext2_super_block sb;
-    int read_status = read_superblock(fp, &sb);
-
-    if (fclose(fp) != 0) {
-        perror("Error closing file");
-        return EXIT_FAILURE;
-    }
+    int read_status = read_superblock(fp_orig_img, &sb);
 
     if (read_status != 0) {
         fprintf(stderr, "Failed to successfully process superblock from %s. Error code: %d\n", filename, read_status);
@@ -140,7 +130,41 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "--- write_superblock test FAILED. ---\n");
         return EXIT_FAILURE;
     }
-
     printf("--- write_superblock test completed successfully. ---\n");
+
+    // --- Read and print Block Group Descriptors ---
+    printf("\n--- Reading Block Group Descriptors ---\n");
+    uint32_t num_groups_read = 0;
+    struct ext2_group_desc *gdt = read_all_group_descriptors(fp_orig_img, &sb, &num_groups_read);
+
+    // Close the original image file pointer AFTER we are done with all reads from it
+    if (fclose(fp_orig_img) != 0) {
+        perror("Error closing original image file");
+        // Decide if this should be a fatal error for the rest of the program flow
+        if (gdt != NULL) free(gdt); // Clean up if GDT was read before close error
+        return EXIT_FAILURE; 
+    }
+
+    if (gdt == NULL) {
+        fprintf(stderr, "Failed to read block group descriptors.\n");
+        return EXIT_FAILURE;
+    }
+
+    printf("Successfully read %u block group descriptors.\n", num_groups_read);
+    uint32_t groups_to_print = num_groups_read < 3 ? num_groups_read : 3; // Print up to 3 groups
+    for (uint32_t i = 0; i < groups_to_print; ++i) {
+        printf("  Group %u:\n", i);
+        printf("    Block Bitmap Block: %u\n", gdt[i].bg_block_bitmap);
+        printf("    Inode Bitmap Block: %u\n", gdt[i].bg_inode_bitmap);
+        printf("    Inode Table Block:  %u\n", gdt[i].bg_inode_table);
+        printf("    Free Blocks:      %u\n", gdt[i].bg_free_blocks_count);
+        printf("    Free Inodes:      %u\n", gdt[i].bg_free_inodes_count);
+        printf("    Used Dirs:        %u\n", gdt[i].bg_used_dirs_count);
+        printf("    Flags:            0x%X\n", gdt[i].bg_flags);
+    }
+
+    free(gdt); // Free the allocated GDT memory
+    printf("--- Block group descriptor processing complete. ---\n");
+
     return EXIT_SUCCESS;
 }

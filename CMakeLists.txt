@@ -4,5 +4,5 @@ project(c_ext2_filesystem C)
 set(CMAKE_C_STANDARD 23)
 
 add_executable(c_ext2_filesystem main.c
-        Superblock.h
-        Superblock.c)
+        Superblock.c
+        BlockGroup.c)
