@@ -37,15 +37,6 @@ static uint32_t count_block_groups_by_blocks(
     return (superblock->s_blocks_count + superblock->s_blocks_per_group - 1) / superblock->s_blocks_per_group;
 }
 
-uint32_t get_block_size(
-    const ext2_super_block *superblock
-) {
-    if (superblock == NULL) {
-        return SUCCESS;
-    }
-    return 1024 << superblock->s_log_block_size;
-}
-
 off_t get_table_offset(
     const ext2_super_block *superblock
 ) {

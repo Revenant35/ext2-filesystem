@@ -1,9 +1,9 @@
 /**
  * @file Superblock.c
- * @brief Implements functions for reading and writing the ext2 superblock.
+ * @brief Implements functions for reading, writing, and interpreting the ext2 superblock.
  *
  * These functions handle the I/O operations to load the superblock from a
- * filesystem image into memory and to write a modified superblock back to the image.
+ * filesystem image into memory, write it back, and calculate derived values.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,14 +48,9 @@ int write_superblock(
     FILE *file,
     const ext2_super_block *superblock
 ) {
-    if (file == NULL) {
-        fprintf(stderr, "Error: write_superblock received a NULL file pointer.\n");
+    if (file == NULL || superblock == NULL) {
+        fprintf(stderr, "Error: write_superblock received a NULL pointer.\n");
         return INVALID_PARAMETER;
-    }
-
-    if (superblock == NULL) {
-        fprintf(stderr, "Error: write_superblock received a NULL superblock pointer.\n");
-        return 2;
     }
 
     if (superblock->s_magic != EXT2_SUPER_MAGIC) {
@@ -77,8 +72,40 @@ int write_superblock(
         } else {
             fprintf(stderr, "Error writing superblock: fwrite did not write the expected number of items.\n");
         }
-        return 5;
+        return IO_ERROR;
     }
 
     return SUCCESS;
+}
+
+uint32_t get_block_size(const ext2_super_block *superblock) {
+    if (superblock == NULL) {
+        return 0;
+    }
+
+    return 1024 << superblock->s_log_block_size;
+}
+
+uint32_t get_fragment_size(const ext2_super_block *superblock) {
+    if (superblock == NULL) {
+        return 0;
+    }
+
+    return 1024 << superblock->s_log_frag_size;
+
+}
+
+uint32_t get_block_group_count(const ext2_super_block *superblock) {
+    if (superblock == NULL) {
+        return 0;
+    }
+
+    const uint32_t blocks_count = superblock->s_blocks_count;
+    const uint32_t blocks_per_group = superblock->s_blocks_per_group;
+
+    if (blocks_per_group == 0) {
+        return 0;
+    }
+
+    return (blocks_count + blocks_per_group - 1) / blocks_per_group;
 }

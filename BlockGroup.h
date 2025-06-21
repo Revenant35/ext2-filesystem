@@ -41,14 +41,6 @@ typedef struct {
 #define EXT2_BG_BLOCK_UNINIT    0x0002  // Block bitmap is not initialized
 #define EXT2_BG_INODE_ZEROED    0x0004  // Inode table is zeroed
 
-/**
- * @brief Calculates the block size of the filesystem.
- * @param superblock Pointer to the superblock structure.
- * @return The block size in bytes.
- */
-uint32_t get_block_size(
-    const ext2_super_block *superblock
-);
 
 /**
  * @brief Calculates the starting byte offset of the Block Group Descriptor Table (BGDT).

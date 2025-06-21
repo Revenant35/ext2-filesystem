@@ -11,5 +11,4 @@ add_executable(c_ext2_filesystem
         Directory.c
         Bitmap.c
         Allocation.c
-        globals.h
 )
