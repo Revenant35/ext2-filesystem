@@ -59,7 +59,7 @@
  * It is located at a fixed offset (1024 bytes) from the beginning of the
  * block device or image file.
  */
-struct ext2_super_block {
+typedef struct {
     uint32_t   s_inodes_count;         // Total number of inodes in file system
     uint32_t   s_blocks_count;         // Total number of blocks in file system
     uint32_t   s_r_blocks_count;       // Number of blocks reserved for superuser
@@ -150,7 +150,7 @@ struct ext2_super_block {
     uint32_t   s_prj_quota_inum;       // Inode for tracking project quota
     uint32_t   s_checksum_seed;        // Checksum seed
     uint8_t    s_padding[300];         // Padding to 1024 bytes
-};
+} ext2_super_block;
 
 /**
  * @brief Reads the superblock from an open file stream into memory.
@@ -160,7 +160,7 @@ struct ext2_super_block {
  */
 int read_superblock(
     FILE *file,
-    struct ext2_super_block *superblock
+    ext2_super_block *superblock
 );
 
 /**
@@ -171,7 +171,7 @@ int read_superblock(
  */
 int write_superblock(
     FILE *file,
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 );
 
 #endif //SUPERBLOCK_H

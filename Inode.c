@@ -9,10 +9,10 @@
 #include "Inode.h"
 #include "Superblock.h"
 #include "BlockGroup.h"
+#include "globals.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "globals.h"
 
 /**
  * @brief Calculates the disk offset of a given inode.
@@ -25,8 +25,8 @@
  * @return 0 on success, or a negative error code on failure.
  */
 static int calculate_inode_disk_offset(
-    const struct ext2_super_block *superblock,
-    const struct ext2_group_desc *block_group_descriptor_table,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *block_group_descriptor_table,
     const uint32_t inode_num,
     const uint16_t inode_size,
     off_t *offset_out
@@ -53,7 +53,7 @@ static int calculate_inode_disk_offset(
         return -4;
     }
 
-    const struct ext2_group_desc *target_group = &block_group_descriptor_table[block_group_num];
+    const ext2_group_desc *target_group = &block_group_descriptor_table[block_group_num];
     const uint32_t inode_table_start_block_id = target_group->bg_inode_table;
 
     const uint32_t block_size = get_block_size(superblock);
@@ -76,10 +76,10 @@ static int calculate_inode_disk_offset(
  */
 int read_inode(
     FILE *file,
-    const struct ext2_super_block *superblock,
-    const struct ext2_group_desc *block_group_descriptor_table,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *block_group_descriptor_table,
     const uint32_t inode_num,
-    struct ext2_inode *inode_out
+    ext2_inode *inode_out
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL || inode_out == NULL) {
         fprintf(stderr, "Error (read_inode): NULL pointer argument provided.\n");
@@ -90,17 +90,17 @@ int read_inode(
 
     // The size of the inode structure on disk is given by superblock->s_inode_size.
     // The ext2_inode struct in Inode.h is the base 128-byte structure.
-    // If superblock->s_inode_size is larger, this function will only read sizeof(struct ext2_inode) bytes.
+    // If superblock->s_inode_size is larger, this function will only read sizeof(ext2_inode) bytes.
     // This is a simplification; a full implementation for variable inode sizes might require
     // reading superblock->s_inode_size bytes into a buffer and then accessing the known part.
     // For ext2 rev 1+, s_inode_size from superblock is authoritative.
     const uint16_t on_disk_inode_size = superblock->s_inode_size;
-    if (on_disk_inode_size < sizeof(struct ext2_inode) && on_disk_inode_size != 0) {
+    if (on_disk_inode_size < sizeof(ext2_inode) && on_disk_inode_size != 0) {
         // This case is problematic, as we might read beyond the actual inode if on_disk_inode_size is too small
         // but not zero. However, standard ext2 usually has 128 or more.
-        fprintf(stderr, "Warning (read_inode): superblock->s_inode_size (%u) is less than sizeof(struct ext2_inode) (%zu).\n",
-                on_disk_inode_size, sizeof(struct ext2_inode));
-        // Proceeding to read sizeof(struct ext2_inode) might be incorrect here.
+        fprintf(stderr, "Warning (read_inode): superblock->s_inode_size (%u) is less than sizeof(ext2_inode) (%zu).\n",
+                on_disk_inode_size, sizeof(ext2_inode));
+        // Proceeding to read sizeof(ext2_inode) might be incorrect here.
         // For safety, one might choose to read only on_disk_inode_size, but then inode_out would be partially filled.
         // This situation indicates a potential mismatch or a very unusual ext2 configuration.
     }
@@ -117,9 +117,9 @@ int read_inode(
         return -6;
     }
 
-    // We read sizeof(struct ext2_inode) bytes, assuming this is the desired portion
-    // or that on_disk_inode_size >= sizeof(struct ext2_inode).
-    if (fread(inode_out, sizeof(struct ext2_inode), 1, file) != 1) {
+    // We read sizeof(ext2_inode) bytes, assuming this is the desired portion
+    // or that on_disk_inode_size >= sizeof(ext2_inode).
+    if (fread(inode_out, sizeof(ext2_inode), 1, file) != 1) {
         if (feof(file)) {
             fprintf(stderr, "Error (read_inode): Reading inode %u: unexpected end of file.\n", inode_num);
         } else if (ferror(file)) {
@@ -143,10 +143,10 @@ int read_inode(
  */
 int write_inode(
     FILE *file,
-    const struct ext2_super_block *superblock,
-    const struct ext2_group_desc *block_group_descriptor_table,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *block_group_descriptor_table,
     const uint32_t inode_num,
-    const struct ext2_inode *inode_in
+    const ext2_inode *inode_in
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL || inode_in == NULL) {
         fprintf(stderr, "Error (write_inode): NULL pointer argument provided.\n");
@@ -154,9 +154,9 @@ int write_inode(
     }
 
     // Similar to read_inode, using superblock->s_inode_size for location calculation
-    // and sizeof(struct ext2_inode) for the actual write operation.
+    // and sizeof(ext2_inode) for the actual write operation.
     const uint16_t on_disk_inode_size = superblock->s_inode_size;
-    // Add similar warning for on_disk_inode_size < sizeof(struct ext2_inode) if desired.
+    // Add similar warning for on_disk_inode_size < sizeof(ext2_inode) if desired.
 
     off_t inode_disk_offset;
     const int calc_status = calculate_inode_disk_offset(superblock, block_group_descriptor_table, inode_num, on_disk_inode_size, &inode_disk_offset);
@@ -170,7 +170,7 @@ int write_inode(
         return -6;
     }
 
-    if (fwrite(inode_in, sizeof(struct ext2_inode), 1, file) != 1) {
+    if (fwrite(inode_in, sizeof(ext2_inode), 1, file) != 1) {
         if (ferror(file)) {
             perror("Error (write_inode): Writing inode");
         } else {

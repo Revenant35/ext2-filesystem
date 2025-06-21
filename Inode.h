@@ -1,11 +1,11 @@
 #ifndef INODE_H
 #define INODE_H
 
+#include "Superblock.h"
+#include "BlockGroup.h"
+
 #include <stdint.h>
 #include <stdio.h>
-
-struct ext2_super_block;
-struct ext2_group_desc;
 
 #define EXT2_N_BLOCKS 15 //!< Number of block pointers in an inode (12 direct, 1 indirect, 1 dbl-indirect, 1 trpl-indirect)
 
@@ -17,7 +17,7 @@ struct ext2_group_desc;
  * This structure contains all metadata for a file or directory, including mode,
  * ownership, size, timestamps, and pointers to data blocks.
  */
-struct ext2_inode {
+typedef struct {
     uint16_t i_mode;        //!< File mode (type: regular, directory, symlink, etc., and permissions).
     uint16_t i_uid;         //!< Low 16 bits of Owner User ID.
     uint32_t i_size;        //!< File size in bytes. For symbolic links, this is the length of the target path.
@@ -67,7 +67,7 @@ struct ext2_inode {
             uint32_t m_i_reserved2[2]; // Unused (Masix)
         } masix;
     } i_osd2;
-};
+} ext2_inode;
 
 #define EXT2_S_IFMT   0xF000 // Format mask
 #define EXT2_S_IFSOCK 0xC000 // Socket
@@ -131,10 +131,10 @@ struct ext2_inode {
  */
 int read_inode(
     FILE *file,
-    const struct ext2_super_block *superblock,
-    const struct ext2_group_desc *block_group_descriptor_table,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *block_group_descriptor_table,
     uint32_t inode_num,
-    struct ext2_inode *inode_out
+    ext2_inode *inode_out
 );
 
 /**
@@ -149,10 +149,10 @@ int read_inode(
  */
 int write_inode(
     FILE *file,
-    const struct ext2_super_block *superblock,
-    const struct ext2_group_desc *block_group_descriptor_table,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *block_group_descriptor_table,
     uint32_t inode_num,
-    const struct ext2_inode *inode_in
+    const ext2_inode *inode_in
 );
 
 

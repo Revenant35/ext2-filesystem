@@ -10,10 +10,10 @@
 #ifndef BLOCK_GROUP_H
 #define BLOCK_GROUP_H
 
+#include "Superblock.h"
+
 #include <stdint.h>
 #include <stdio.h>
-
-#include "Superblock.h"
 
 /**
  * @brief The ext2 block group descriptor structure (typically 32 bytes).
@@ -22,7 +22,7 @@
  * An array of these descriptors, known as the Block Group Descriptor Table (BGDT),
  * follows the superblock.
  */
-struct ext2_group_desc {
+typedef struct {
     uint32_t bg_block_bitmap;         //!< Block ID of the block usage bitmap for this group.
     uint32_t bg_inode_bitmap;         //!< Block ID of the inode usage bitmap for this group.
     uint32_t bg_inode_table;          //!< Block ID of the starting block of the inode table for this group.
@@ -35,7 +35,7 @@ struct ext2_group_desc {
     uint16_t bg_reserved3;            //!< Reserved for future use. (Was bg_inode_bitmap_csum_lo in ext4 for checksumming)
     uint16_t bg_itable_unused;        //!< Number of unused inodes in this group (if INODE_ZEROED flag is set).
     uint16_t bg_checksum;             //!< Group descriptor checksum (if EXT2_FEATURE_RO_COMPAT_GDT_CSUM is set in superblock).
-};
+} ext2_group_desc;
 
 #define EXT2_BG_INODE_UNINIT    0x0001  // Inode table and bitmap are not initialized
 #define EXT2_BG_BLOCK_UNINIT    0x0002  // Block bitmap is not initialized
@@ -47,7 +47,7 @@ struct ext2_group_desc {
  * @return The block size in bytes.
  */
 uint32_t get_block_size(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 );
 
 /**
@@ -61,7 +61,7 @@ uint32_t get_block_size(
  * @return The starting byte offset of the BGDT from the beginning of the filesystem.
  */
 off_t get_table_offset(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 );
 
 /**
@@ -71,7 +71,7 @@ off_t get_table_offset(
  * @return The byte offset of the specified group descriptor from the beginning of the filesystem.
  */
 off_t get_descriptor_offset(
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     uint64_t group_index
 );
 
@@ -87,7 +87,7 @@ off_t get_descriptor_offset(
  * @return The total number of block groups.
  */
 uint32_t get_num_block_groups(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 );
 
 /**
@@ -101,9 +101,9 @@ uint32_t get_num_block_groups(
  */
 int read_single_group_descriptor(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     uint32_t group_index,
-    struct ext2_group_desc *group_desc_out
+    ext2_group_desc *group_desc_out
 );
 
 /**
@@ -117,9 +117,9 @@ int read_single_group_descriptor(
  */
 int write_single_group_descriptor(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     uint32_t group_index,
-    const struct ext2_group_desc *group_desc_in
+    const ext2_group_desc *group_desc_in
 );
 
 /**
@@ -137,9 +137,9 @@ int write_single_group_descriptor(
  * @return Pointer to an array of `ext2_group_desc` structures (the BLOCK_GROUP_DESCRIPTOR_TABLE), or NULL on failure.
  *         If NULL is returned, `num_groups_read_out` will be set to 0.
  */
-struct ext2_group_desc* read_all_group_descriptors(
+ext2_group_desc* read_all_group_descriptors(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     uint32_t *num_groups_read_out
 );
 

@@ -1,23 +1,23 @@
 #ifndef DIRECTORY_H
 #define DIRECTORY_H
 
+#include "Superblock.h"
+#include "Inode.h"
+#include "BlockGroup.h"
+
 #include <stdint.h>
 #include <stdio.h>
 
-struct ext2_super_block;
-struct ext2_group_desc;
-struct ext2_inode;
-
 #define EXT2_NAME_LEN 255
 
-struct ext2_dir_entry_2 {
+typedef struct {
     uint32_t inode;     // Inode number (0 if entry is unused)
     uint16_t rec_len;   // Directory entry length (total size of this entry in bytes)
     uint8_t  name_len;  // Name length (actual length of the name string in characters)
     uint8_t  file_type; // File type indicator
     char     name[EXT2_NAME_LEN]; // File name characters (NOT necessarily null-terminated within this array)
                                   // The actual name occupies the first 'name_len' bytes.
-};
+} ext2_directory_entry;
 
 #define EXT2_FT_UNKNOWN  0 // Unknown Type
 #define EXT2_FT_REG_FILE 1 // Regular File
@@ -49,7 +49,7 @@ struct ext2_dir_entry_2 {
  * @param dir_inode_num The inode number of the directory to list.
  * @return 0 on success, or a negative error code on failure.
  */
-int list_directory_entries(FILE *file, const struct ext2_super_block *superblock, const struct ext2_group_desc *block_group_descriptor_table, uint32_t dir_inode_num);
+int list_directory_entries(FILE *file, const ext2_super_block *superblock, const ext2_group_desc *block_group_descriptor_table, uint32_t dir_inode_num);
 
 /**
  * @brief Creates a new directory.
@@ -73,8 +73,8 @@ int list_directory_entries(FILE *file, const struct ext2_super_block *superblock
  */
 int create_directory(
     FILE *file,
-    struct ext2_super_block *superblock,
-    struct ext2_group_desc *block_group_descriptor_table,
+    ext2_super_block *superblock,
+    ext2_group_desc *block_group_descriptor_table,
     uint32_t num_block_groups,
     uint32_t parent_inode_num,
     const char *new_dir_name,
@@ -101,10 +101,10 @@ int create_directory(
  */
 int add_directory_entry(
     FILE *file,
-    struct ext2_super_block *superblock,
-    struct ext2_group_desc *block_group_descriptor_table,
+    ext2_super_block *superblock,
+    ext2_group_desc *block_group_descriptor_table,
     uint32_t num_block_groups,
-    struct ext2_inode *parent_inode,
+    ext2_inode *parent_inode,
     uint32_t new_entry_inode_num,
     const char *new_entry_name,
     uint8_t new_entry_type

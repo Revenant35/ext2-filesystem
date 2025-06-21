@@ -16,14 +16,14 @@ void test_create_directory(const char *filesystem_image_path) {
         return;
     }
 
-    struct ext2_super_block superblock;
+    ext2_super_block superblock;
     if (read_superblock(file, &superblock) != 0) {
         fclose(file);
         return;
     }
 
     uint32_t num_groups;
-    struct ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups);
+    ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups);
     if (!block_group_descriptor_table) {
         fclose(file);
         return;
@@ -54,7 +54,7 @@ void list_root_directory(const char *filesystem_image_path) {
         return;
     }
 
-    struct ext2_super_block superblock;
+    ext2_super_block superblock;
     if (read_superblock(file, &superblock) != 0) {
         fprintf(stderr, "Failed to read superblock for root directory listing.\n");
         fclose(file);
@@ -62,7 +62,7 @@ void list_root_directory(const char *filesystem_image_path) {
     }
 
     uint32_t num_groups_read = 0;
-    struct ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups_read);
+    ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups_read);
     if (block_group_descriptor_table == NULL) {
         fprintf(stderr, "Failed to read block group descriptors for root directory listing.\n");
         fclose(file);
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Attempting to read superblock from: %s\n", filename);
-    struct ext2_super_block superblock;
+    ext2_super_block superblock;
     int read_status = read_superblock(fp_orig_img, &superblock);
 
     if (read_status != 0) {
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
 
     // --- Test write_superblock functionality ---
     const char *output_filename = "test_output.img";
-    struct ext2_super_block superblock_read_back;
+    ext2_super_block superblock_read_back;
     int read_back_status;
 
     printf("\n--- Testing write_superblock to %s ---\n", output_filename);
@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
             printf("Superblock read back successfully from %s.\n", output_filename);
 
             // Compare the original superblock with the one read back
-            if (memcmp(&superblock, &superblock_read_back, sizeof(struct ext2_super_block)) == 0) {
+            if (memcmp(&superblock, &superblock_read_back, sizeof(ext2_super_block)) == 0) {
                 printf("SUCCESS: Original superblock and read-back superblock are identical.\n");
             } else {
                 fprintf(stderr, "FAILURE: Original superblock and read-back superblock differ!\n");
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Determine final exit status based on test outcomes
-    if (write_status != 0 || read_back_status != 0 || memcmp(&superblock, &superblock_read_back, sizeof(struct ext2_super_block)) != 0) {
+    if (write_status != 0 || read_back_status != 0 || memcmp(&superblock, &superblock_read_back, sizeof(ext2_super_block)) != 0) {
         fprintf(stderr, "--- write_superblock test FAILED. ---\n");
         return EXIT_FAILURE;
     }
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
     // --- Read and print Block Group Descriptors ---
     printf("\n--- Reading Block Group Descriptors ---\n");
     uint32_t num_groups_read = 0;
-    struct ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(fp_orig_img, &superblock, &num_groups_read);
+    ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(fp_orig_img, &superblock, &num_groups_read);
 
     // Close the original image file pointer AFTER we are done with all reads from it
     if (fclose(fp_orig_img) != 0) {

@@ -29,7 +29,7 @@
  */
 int read_superblock(
     FILE *file,
-    struct ext2_super_block *superblock
+    ext2_super_block *superblock
 ) {
     if (file == NULL) {
         fprintf(stderr, "Error: read_superblock received a NULL file pointer.\n");
@@ -41,7 +41,7 @@ int read_superblock(
         return 2;
     }
 
-    if (fread(superblock, sizeof(struct ext2_super_block), 1, file) != 1) {
+    if (fread(superblock, sizeof(ext2_super_block), 1, file) != 1) {
         if (feof(file)) {
             fprintf(stderr, "Error reading superblock: unexpected end of file.\n");
         } else if (ferror(file)) {
@@ -81,7 +81,7 @@ int read_superblock(
  */
 int write_superblock(
     FILE *file,
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 ) {
     if (file == NULL) {
         fprintf(stderr, "Error: write_superblock received a NULL file pointer.\n");
@@ -106,7 +106,7 @@ int write_superblock(
         return 4;
     }
 
-    if (fwrite(superblock, sizeof(struct ext2_super_block), 1, file) != 1) {
+    if (fwrite(superblock, sizeof(ext2_super_block), 1, file) != 1) {
         if (ferror(file)) {
             perror("Error writing superblock");
         } else {

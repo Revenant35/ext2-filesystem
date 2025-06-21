@@ -1,11 +1,10 @@
 #ifndef C_EXT2_FILESYSTEM_BITMAP_H
 #define C_EXT2_FILESYSTEM_BITMAP_H
 
+#include "Superblock.h"
+
 #include <stdint.h>
 #include <stdio.h>
-
-// Forward declaration to avoid circular dependency
-struct ext2_super_block;
 
 /**
  * @brief Reads a bitmap from a specified block into a buffer.
@@ -20,7 +19,7 @@ struct ext2_super_block;
  */
 int read_bitmap(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     uint32_t bitmap_block_id,
     uint8_t *bitmap_buffer
 );
@@ -36,7 +35,7 @@ int read_bitmap(
  */
 int write_bitmap(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     uint32_t bitmap_block_id,
     const uint8_t *bitmap_buffer
 );

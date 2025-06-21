@@ -12,7 +12,7 @@
 
 int read_bitmap(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     const uint32_t bitmap_block_id,
     uint8_t *bitmap_buffer
 ) {
@@ -34,7 +34,7 @@ int read_bitmap(
 
 int write_bitmap(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     const uint32_t bitmap_block_id,
     const uint8_t *bitmap_buffer
 ) {

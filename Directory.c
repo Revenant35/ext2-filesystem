@@ -7,14 +7,14 @@
 #include "Inode.h"
 #include "BlockGroup.h"
 #include "Allocation.h"
+#include "Superblock.h"
+#include "globals.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
-
-#include "globals.h"
 
 // Define for the number of direct blocks in an inode, typically 12
 #define EXT2_NDIR_BLOCKS 12
@@ -40,8 +40,8 @@
  */
 int list_directory_entries(
     FILE *file,
-    const struct ext2_super_block *superblock,
-    const struct ext2_group_desc *block_group_descriptor_table,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *block_group_descriptor_table,
     const uint32_t dir_inode_num
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL) {
@@ -49,7 +49,7 @@ int list_directory_entries(
         return INVALID_PARAMETER;
     }
 
-    struct ext2_inode dir_inode;
+    ext2_inode dir_inode;
     if (read_inode(file, superblock, block_group_descriptor_table, dir_inode_num, &dir_inode) != 0) {
         fprintf(stderr, "Error (list_directory): Failed to read inode %u.\n", dir_inode_num);
         return -2;
@@ -104,7 +104,7 @@ int list_directory_entries(
 
         uint32_t current_offset_in_block = 0;
         while (current_offset_in_block < block_size) {
-            const auto entry = (struct ext2_dir_entry_2 *) (block_buffer + current_offset_in_block);
+            const auto entry = (ext2_directory_entry *) (block_buffer + current_offset_in_block);
 
             if (entry->inode == 0 && entry->rec_len == 0) {
                 // Should not happen if rec_len is always valid
@@ -146,10 +146,10 @@ int list_directory_entries(
 
 int add_directory_entry(
     FILE *file,
-    struct ext2_super_block *superblock,
-    struct ext2_group_desc *block_group_descriptor_table,
+    ext2_super_block *superblock,
+    ext2_group_desc *block_group_descriptor_table,
     const uint32_t num_block_groups,
-    struct ext2_inode *parent_inode,
+    ext2_inode *parent_inode,
     const uint32_t new_entry_inode_num,
     const char *new_entry_name,
     const uint8_t new_entry_type
@@ -174,7 +174,7 @@ int add_directory_entry(
         fread(block_buffer, block_size, 1, file);
 
         char *current_pos = block_buffer;
-        auto entry = (struct ext2_dir_entry_2 *) current_pos;
+        auto entry = (ext2_directory_entry *) current_pos;
 
         while (current_pos - block_buffer < block_size) {
             // Actual space used by the current entry
@@ -189,7 +189,7 @@ int add_directory_entry(
 
                 // Create the new entry in the remaining space
                 current_pos += entry->rec_len;
-                const auto new_entry = (struct ext2_dir_entry_2 *) current_pos;
+                const auto new_entry = (ext2_directory_entry *) current_pos;
                 new_entry->inode = new_entry_inode_num;
                 new_entry->rec_len = old_rec_len - entry->rec_len;
                 new_entry->name_len = name_len;
@@ -206,7 +206,7 @@ int add_directory_entry(
 
             // Move to the next entry
             current_pos += entry->rec_len;
-            entry = (struct ext2_dir_entry_2 *) current_pos;
+            entry = (ext2_directory_entry *) current_pos;
         }
     }
 
@@ -239,7 +239,7 @@ int add_directory_entry(
     parent_inode->i_blocks += block_size / 512;
 
     // Initialize the new block with the new entry
-    const auto new_entry = (struct ext2_dir_entry_2 *) block_buffer;
+    const auto new_entry = (ext2_directory_entry *) block_buffer;
     new_entry->inode = new_entry_inode_num;
     new_entry->rec_len = block_size;
     new_entry->name_len = name_len;
@@ -257,8 +257,8 @@ int add_directory_entry(
 
 int create_directory(
     FILE *file,
-    struct ext2_super_block *superblock,
-    struct ext2_group_desc *block_group_descriptor_table,
+    ext2_super_block *superblock,
+    ext2_group_desc *block_group_descriptor_table,
     const uint32_t num_block_groups,
     const uint32_t parent_inode_num,
     const char *new_dir_name,
@@ -282,7 +282,7 @@ int create_directory(
     const uint32_t block_size = get_block_size(superblock);
 
     // Initialize the new directory's inode
-    struct ext2_inode new_inode = {0};
+    ext2_inode new_inode = {0};
     new_inode.i_mode = EXT2_S_IFDIR | 0755;
     new_inode.i_links_count = 2; // For '.' and the entry in the parent
     new_inode.i_size = block_size;
@@ -293,14 +293,14 @@ int create_directory(
     // Initialize the new data block with '.' and '..'
     const auto block_buffer = (char *) calloc(1, block_size);
     // '.' entry
-    const auto self_entry = (struct ext2_dir_entry_2 *) block_buffer;
+    const auto self_entry = (ext2_directory_entry *) block_buffer;
     self_entry->inode = new_inode_num;
     self_entry->name_len = 1;
     strcpy(self_entry->name, ".");
     self_entry->file_type = EXT2_FT_DIR;
     self_entry->rec_len = EXT2_DIR_REC_LEN(self_entry->name_len);
     // '..' entry
-    const auto parent_entry = (struct ext2_dir_entry_2 *) (block_buffer + self_entry->rec_len);
+    const auto parent_entry = (ext2_directory_entry *) (block_buffer + self_entry->rec_len);
     parent_entry->inode = parent_inode_num;
     parent_entry->name_len = 2;
     strcpy(parent_entry->name, "..");
@@ -313,7 +313,7 @@ int create_directory(
     free(block_buffer);
 
     // Add entry to parent directory
-    struct ext2_inode parent_inode;
+    ext2_inode parent_inode;
     read_inode(file, superblock, block_group_descriptor_table, parent_inode_num, &parent_inode);
     add_directory_entry(file, superblock, block_group_descriptor_table, num_block_groups, &parent_inode, new_inode_num, new_dir_name, EXT2_FT_DIR);
     parent_inode.i_links_count++;

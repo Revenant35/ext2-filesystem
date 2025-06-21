@@ -14,8 +14,8 @@
 
 int allocate_inode(
     FILE *file,
-    struct ext2_super_block *superblock,
-    struct ext2_group_desc *block_group_descriptor_table,
+    ext2_super_block *superblock,
+    ext2_group_desc *block_group_descriptor_table,
     const uint32_t num_block_groups,
     uint32_t *new_inode_num_out
 ) {
@@ -87,8 +87,8 @@ int allocate_inode(
 
 int allocate_block(
     FILE *file,
-    struct ext2_super_block *superblock,
-    struct ext2_group_desc *block_group_descriptor_table,
+    ext2_super_block *superblock,
+    ext2_group_desc *block_group_descriptor_table,
     const uint32_t num_block_groups,
     uint32_t *new_block_num_out
 ) {

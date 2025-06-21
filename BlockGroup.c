@@ -20,7 +20,7 @@
  * @return The calculated number of block groups.
  */
 static uint32_t count_block_groups_by_inodes(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 ) {
     return (superblock->s_inodes_count + superblock->s_inodes_per_group - 1) / superblock->s_inodes_per_group;
 }
@@ -32,13 +32,13 @@ static uint32_t count_block_groups_by_inodes(
  * @return The calculated number of block groups.
  */
 static uint32_t count_block_groups_by_blocks(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 ) {
     return (superblock->s_blocks_count + superblock->s_blocks_per_group - 1) / superblock->s_blocks_per_group;
 }
 
 uint32_t get_block_size(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 ) {
     if (superblock == NULL) {
         return 0;
@@ -47,7 +47,7 @@ uint32_t get_block_size(
 }
 
 off_t get_table_offset(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 ) {
     if (superblock == NULL) {
         return 0;
@@ -57,17 +57,17 @@ off_t get_table_offset(
 }
 
 off_t get_descriptor_offset(
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     const uint64_t group_index
 ) {
     if (superblock == NULL) {
         return 0;
     }
-    return (off_t) group_index * sizeof(struct ext2_group_desc) + get_table_offset(superblock);
+    return (off_t) group_index * sizeof(ext2_group_desc) + get_table_offset(superblock);
 }
 
 uint32_t get_num_block_groups(
-    const struct ext2_super_block *superblock
+    const ext2_super_block *superblock
 ) {
     if (superblock == NULL) {
         return 0;
@@ -87,9 +87,9 @@ uint32_t get_num_block_groups(
 
 int read_single_group_descriptor(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     const uint32_t group_index,
-    struct ext2_group_desc *group_desc_out
+    ext2_group_desc *group_desc_out
 ) {
     if (file == NULL || superblock == NULL || group_desc_out == NULL) {
         fprintf(stderr, "Error: NULL pointer passed to read_single_group_descriptor.\n");
@@ -103,7 +103,7 @@ int read_single_group_descriptor(
         return -2;
     }
 
-    if (fread(group_desc_out, sizeof(struct ext2_group_desc), 1, file) != 1) {
+    if (fread(group_desc_out, sizeof(ext2_group_desc), 1, file) != 1) {
         if (feof(file)) {
             fprintf(stderr, "Error reading group descriptor: unexpected end of file for group %u.\n", group_index);
             return -3;
@@ -122,9 +122,9 @@ int read_single_group_descriptor(
 
 int write_single_group_descriptor(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     const uint32_t group_index,
-    const struct ext2_group_desc *group_desc_in
+    const ext2_group_desc *group_desc_in
 ) {
     if (file == NULL || superblock == NULL || group_desc_in == NULL) {
         return INVALID_PARAMETER;
@@ -137,7 +137,7 @@ int write_single_group_descriptor(
         return -2;
     }
 
-    if (fwrite(group_desc_in, sizeof(struct ext2_group_desc), 1, file) != 1) {
+    if (fwrite(group_desc_in, sizeof(ext2_group_desc), 1, file) != 1) {
         if (ferror(file)) {
             perror("Error (write_single_group_descriptor): Writing group descriptor");
         } else {
@@ -149,9 +149,9 @@ int write_single_group_descriptor(
     return 0;
 }
 
-struct ext2_group_desc *read_all_group_descriptors(
+ext2_group_desc *read_all_group_descriptors(
     FILE *file,
-    const struct ext2_super_block *superblock,
+    const ext2_super_block *superblock,
     uint32_t *num_groups_read_out
 ) {
     if (file == NULL || superblock == NULL || num_groups_read_out == NULL) {
@@ -169,13 +169,13 @@ struct ext2_group_desc *read_all_group_descriptors(
 
     *num_groups_read_out = 0;
 
-    struct ext2_group_desc *gdt_table = malloc(num_groups * sizeof(struct ext2_group_desc));
+    ext2_group_desc *gdt_table = malloc(num_groups * sizeof(ext2_group_desc));
     if (gdt_table == NULL) {
         perror("Error allocating memory for BLOCK_GROUP_DESCRIPTOR_TABLE table");
         return nullptr;
     }
 
-    memset(gdt_table, 0, num_groups * sizeof(struct ext2_group_desc));
+    memset(gdt_table, 0, num_groups * sizeof(ext2_group_desc));
 
     const off_t bgdt_start_offset = get_table_offset(superblock);
 
@@ -185,7 +185,7 @@ struct ext2_group_desc *read_all_group_descriptors(
         return nullptr;
     }
 
-    const size_t items_read = fread(gdt_table, sizeof(struct ext2_group_desc), num_groups, file);
+    const size_t items_read = fread(gdt_table, sizeof(ext2_group_desc), num_groups, file);
     if (items_read != num_groups) {
         if (feof(file)) {
             fprintf(stderr, "Error reading BLOCK_GROUP_DESCRIPTOR_TABLE: unexpected end of file. Expected %u groups, read %zu.\n", num_groups,
