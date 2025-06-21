@@ -5,7 +5,6 @@
 
 #include "Bitmap.h"
 #include "Superblock.h"
-#include "BlockGroup.h"
 #include "globals.h"
 
 #include <stdio.h>

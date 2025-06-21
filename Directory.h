@@ -65,7 +65,6 @@ int list_directory_entries(FILE *file, const ext2_super_block *superblock, const
  * @param file                Pointer to the filesystem image file.
  * @param superblock                Pointer to the superblock (will be updated).
  * @param block_group_descriptor_table               Pointer to the BLOCK_GROUP_DESCRIPTOR_TABLE (will be updated).
- * @param num_block_groups  Total number of block groups.
  * @param parent_inode_num  Inode number of the parent directory.
  * @param new_dir_name      The name for the new directory.
  * @param new_inode_num_out Pointer to store the newly created inode number.
@@ -74,8 +73,7 @@ int list_directory_entries(FILE *file, const ext2_super_block *superblock, const
 int create_directory(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    uint32_t num_block_groups,
+    ext2_group_desc_table *block_group_descriptor_table,
     uint32_t parent_inode_num,
     const char *new_dir_name,
     uint32_t *new_inode_num_out
@@ -92,7 +90,6 @@ int create_directory(
  * @param file                Pointer to the filesystem image file.
  * @param superblock                Pointer to the superblock.
  * @param block_group_descriptor_table               Pointer to the BLOCK_GROUP_DESCRIPTOR_TABLE.
- * @param num_block_groups  Total number of block groups.
  * @param parent_inode      Pointer to the parent directory's inode (will be updated in memory).
  * @param new_entry_inode_num Inode number for the new entry.
  * @param new_entry_name    Name for the new entry.
@@ -102,8 +99,7 @@ int create_directory(
 int add_directory_entry(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    uint32_t num_block_groups,
+    const ext2_group_desc_table *block_group_descriptor_table,
     ext2_inode *parent_inode,
     uint32_t new_entry_inode_num,
     const char *new_entry_name,

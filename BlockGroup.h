@@ -37,6 +37,11 @@ typedef struct {
     uint16_t bg_checksum;             //!< Group descriptor checksum (if EXT2_FEATURE_RO_COMPAT_GDT_CSUM is set in superblock).
 } ext2_group_desc;
 
+typedef struct {
+    ext2_group_desc *groups;
+    uint32_t groups_count;
+} ext2_group_desc_table;
+
 #define EXT2_BG_INODE_UNINIT    0x0001  // Inode table and bitmap are not initialized
 #define EXT2_BG_BLOCK_UNINIT    0x0002  // Block bitmap is not initialized
 #define EXT2_BG_INODE_ZEROED    0x0004  // Inode table is zeroed
@@ -123,16 +128,12 @@ int write_single_group_descriptor(
  *
  * @param file Pointer to an open FILE stream for the filesystem image.
  * @param superblock Pointer to the filesystem's superblock (already read into memory).
- * @param num_groups_read_out Pointer to a `uint32_t` that will be populated with the
- *                            number of group descriptors successfully read (which is also
- *                            the number of block groups in the filesystem).
  * @return Pointer to an array of `ext2_group_desc` structures (the BLOCK_GROUP_DESCRIPTOR_TABLE), or NULL on failure.
  *         If NULL is returned, `num_groups_read_out` will be set to 0.
  */
-ext2_group_desc* read_all_group_descriptors(
+ext2_group_desc_table *read_all_group_descriptors(
     FILE *file,
-    const ext2_super_block *superblock,
-    uint32_t *num_groups_read_out
+    const ext2_super_block *superblock
 );
 
 #endif // BLOCK_GROUP_H

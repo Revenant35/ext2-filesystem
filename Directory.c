@@ -56,7 +56,7 @@ int list_directory_entries(
     }
 
     // Check if it's a directory (S_IFDIR is 0x4000)
-    if (!((dir_inode.i_mode & 0xF000) == 0x4000)) {
+    if ((dir_inode.i_mode & 0xF000) != 0x4000) {
         // S_IFMT is 0xF000, S_IFDIR is 0x4000
         fprintf(stderr, "Error (list_directory): Inode %u is not a directory (mode: %04X).\n", dir_inode_num,
                 dir_inode.i_mode);
@@ -147,8 +147,7 @@ int list_directory_entries(
 int add_directory_entry(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    const uint32_t num_block_groups,
+    const ext2_group_desc_table *block_group_descriptor_table,
     ext2_inode *parent_inode,
     const uint32_t new_entry_inode_num,
     const char *new_entry_name,
@@ -212,7 +211,7 @@ int add_directory_entry(
 
     // If we are here, no space was found in existing blocks. Allocate a new one.
     uint32_t new_block_num;
-    if (allocate_block(file, superblock, block_group_descriptor_table, num_block_groups, &new_block_num) != 0) {
+    if (allocate_block(file, superblock, block_group_descriptor_table, &new_block_num) != 0) {
         free(block_buffer);
         return -2; // Failed to allocate new block
     }
@@ -258,8 +257,7 @@ int add_directory_entry(
 int create_directory(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    const uint32_t num_block_groups,
+    ext2_group_desc_table *block_group_descriptor_table,
     const uint32_t parent_inode_num,
     const char *new_dir_name,
     uint32_t *new_inode_num_out
@@ -269,12 +267,12 @@ int create_directory(
     }
 
     uint32_t new_inode_num;
-    if (allocate_inode(file, superblock, block_group_descriptor_table, num_block_groups, &new_inode_num) != 0) {
+    if (allocate_inode(file, superblock, block_group_descriptor_table, &new_inode_num) != 0) {
         return -2; // Failed to allocate inode
     }
 
     uint32_t new_block_num;
-    if (allocate_block(file, superblock, block_group_descriptor_table, num_block_groups, &new_block_num) != 0) {
+    if (allocate_block(file, superblock, block_group_descriptor_table, &new_block_num) != 0) {
         // TODO: Deallocate inode
         return -3; // Failed to allocate block
     }
@@ -314,14 +312,14 @@ int create_directory(
 
     // Add entry to parent directory
     ext2_inode parent_inode;
-    read_inode(file, superblock, block_group_descriptor_table, parent_inode_num, &parent_inode);
-    add_directory_entry(file, superblock, block_group_descriptor_table, num_block_groups, &parent_inode, new_inode_num, new_dir_name, EXT2_FT_DIR);
+    read_inode(file, superblock, block_group_descriptor_table->groups, parent_inode_num, &parent_inode);
+    add_directory_entry(file, superblock, block_group_descriptor_table, &parent_inode, new_inode_num, new_dir_name, EXT2_FT_DIR);
     parent_inode.i_links_count++;
     parent_inode.i_mtime = parent_inode.i_ctime = time(nullptr);
-    write_inode(file, superblock, block_group_descriptor_table, parent_inode_num, &parent_inode);
+    write_inode(file, superblock, block_group_descriptor_table->groups, parent_inode_num, &parent_inode);
 
     // Write the new inode to disk
-    write_inode(file, superblock, block_group_descriptor_table, new_inode_num, &new_inode);
+    write_inode(file, superblock, block_group_descriptor_table->groups, new_inode_num, &new_inode);
 
     if (new_inode_num_out) {
         *new_inode_num_out = new_inode_num;

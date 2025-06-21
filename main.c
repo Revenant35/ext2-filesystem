@@ -5,6 +5,7 @@
 #include "Superblock.h"
 #include "BlockGroup.h"
 #include "Directory.h" // For list_directory_entries
+#include "globals.h"
 #include "Inode.h"     // For EXT2_ROOT_INO constant
 
 // Function to list the root directory entries
@@ -22,8 +23,7 @@ void test_create_directory(const char *filesystem_image_path) {
         return;
     }
 
-    uint32_t num_groups;
-    ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups);
+    const auto block_group_descriptor_table = read_all_group_descriptors(file, &superblock);
     if (!block_group_descriptor_table) {
         fclose(file);
         return;
@@ -31,14 +31,14 @@ void test_create_directory(const char *filesystem_image_path) {
 
     printf("Attempting to create '/new_dir'...\n");
     uint32_t new_inode;
-    if (create_directory(file, &superblock, block_group_descriptor_table, num_groups, EXT2_ROOT_INO, "new_dir", &new_inode) == 0) {
+    if (create_directory(file, &superblock, block_group_descriptor_table, EXT2_ROOT_INO, "new_dir", &new_inode) == 0) {
         printf("Successfully created '/new_dir' with inode %u\n", new_inode);
     } else {
         fprintf(stderr, "Failed to create directory.\n");
     }
 
     printf("\n--- Listing Root Directory After Creation ---\n");
-    list_directory_entries(file, &superblock, block_group_descriptor_table, EXT2_ROOT_INO);
+    list_directory_entries(file, &superblock, block_group_descriptor_table->groups, EXT2_ROOT_INO);
 
     free(block_group_descriptor_table);
     fclose(file);
@@ -61,8 +61,7 @@ void list_root_directory(const char *filesystem_image_path) {
         return;
     }
 
-    uint32_t num_groups_read = 0;
-    ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups_read);
+    const auto block_group_descriptor_table = read_all_group_descriptors(file, &superblock);
     if (block_group_descriptor_table == NULL) {
         fprintf(stderr, "Failed to read block group descriptors for root directory listing.\n");
         fclose(file);
@@ -73,7 +72,7 @@ void list_root_directory(const char *filesystem_image_path) {
     // EXT2_ROOT_INO is defined as 2 in ext2_fs.h, commonly used in ext2 implementations.
     // If not available in your Inode.h, you might need to define it or use 2 directly.
     // Assuming Inode.h might have it or it's a common understanding.
-    int list_status = list_directory_entries(file, &superblock, block_group_descriptor_table, EXT2_ROOT_INO);
+    const int list_status = list_directory_entries(file, &superblock, block_group_descriptor_table->groups, EXT2_ROOT_INO);
     if (list_status != 0) {
         fprintf(stderr, "Failed to list root directory entries. Error code: %d\n", list_status);
     }
@@ -214,8 +213,7 @@ int main(int argc, char *argv[]) {
 
     // --- Read and print Block Group Descriptors ---
     printf("\n--- Reading Block Group Descriptors ---\n");
-    uint32_t num_groups_read = 0;
-    ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(fp_orig_img, &superblock, &num_groups_read);
+    auto block_group_descriptor_table = read_all_group_descriptors(fp_orig_img, &superblock);
 
     // Close the original image file pointer AFTER we are done with all reads from it
     if (fclose(fp_orig_img) != 0) {
@@ -230,17 +228,17 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    printf("Successfully read %u block group descriptors.\n", num_groups_read);
-    uint32_t groups_to_print = num_groups_read < 3 ? num_groups_read : 3; // Print up to 3 groups
+    printf("Successfully read %u block group descriptors.\n", block_group_descriptor_table->groups_count);
+    uint32_t groups_to_print = block_group_descriptor_table->groups_count < 3 ? block_group_descriptor_table->groups_count : 3; // Print up to 3 groups
     for (uint32_t i = 0; i < groups_to_print; ++i) {
         printf("  Group %u:\n", i);
-        printf("    Block Bitmap Block: %u\n", block_group_descriptor_table[i].bg_block_bitmap);
-        printf("    Inode Bitmap Block: %u\n", block_group_descriptor_table[i].bg_inode_bitmap);
-        printf("    Inode Table Block:  %u\n", block_group_descriptor_table[i].bg_inode_table);
-        printf("    Free Blocks:      %u\n", block_group_descriptor_table[i].bg_free_blocks_count);
-        printf("    Free Inodes:      %u\n", block_group_descriptor_table[i].bg_free_inodes_count);
-        printf("    Used Dirs:        %u\n", block_group_descriptor_table[i].bg_used_dirs_count);
-        printf("    Flags:            0x%X\n", block_group_descriptor_table[i].bg_flags);
+        printf("    Block Bitmap Block: %u\n", block_group_descriptor_table->groups[i].bg_block_bitmap);
+        printf("    Inode Bitmap Block: %u\n", block_group_descriptor_table->groups[i].bg_inode_bitmap);
+        printf("    Inode Table Block:  %u\n", block_group_descriptor_table->groups[i].bg_inode_table);
+        printf("    Free Blocks:      %u\n", block_group_descriptor_table->groups[i].bg_free_blocks_count);
+        printf("    Free Inodes:      %u\n", block_group_descriptor_table->groups[i].bg_free_inodes_count);
+        printf("    Used Dirs:        %u\n", block_group_descriptor_table->groups[i].bg_used_dirs_count);
+        printf("    Flags:            0x%X\n", block_group_descriptor_table->groups[i].bg_flags);
     }
 
     free(block_group_descriptor_table); // Free the allocated BLOCK_GROUP_DESCRIPTOR_TABLE memory

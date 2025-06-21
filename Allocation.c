@@ -15,8 +15,7 @@
 int allocate_inode(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    const uint32_t num_block_groups,
+    const ext2_group_desc_table *block_group_descriptor_table,
     uint32_t *new_inode_num_out
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL || new_inode_num_out == NULL) {
@@ -29,9 +28,9 @@ int allocate_inode(
         return -2; // Memory allocation failure
     }
 
-    for (uint32_t group_idx = 0; group_idx < num_block_groups; ++group_idx) {
-        if (block_group_descriptor_table[group_idx].bg_free_inodes_count > 0) {
-            const uint32_t inode_bitmap_block_id = block_group_descriptor_table[group_idx].bg_inode_bitmap;
+    for (uint32_t group_idx = 0; group_idx < block_group_descriptor_table->groups_count; ++group_idx) {
+        if (block_group_descriptor_table->groups[group_idx].bg_free_inodes_count > 0) {
+            const uint32_t inode_bitmap_block_id = block_group_descriptor_table->groups[group_idx].bg_inode_bitmap;
 
             if (read_bitmap(file, superblock, inode_bitmap_block_id, bitmap_buffer) != 0) {
                 fprintf(stderr, "Failed to read inode bitmap for group %u\n", group_idx);
@@ -57,11 +56,11 @@ int allocate_inode(
                 }
 
                 // Update counts
-                block_group_descriptor_table[group_idx].bg_free_inodes_count--;
+                block_group_descriptor_table->groups[group_idx].bg_free_inodes_count--;
                 superblock->s_free_inodes_count--;
 
                 // Write updated group descriptor and superblock back to disk
-                if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table[group_idx]) != 0) {
+                if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != 0) {
                     fprintf(stderr, "Failed to write updated group descriptor for group %u\n", group_idx);
                     // Attempt to revert changes? For now, just report error.
                     free(bitmap_buffer);
@@ -88,8 +87,7 @@ int allocate_inode(
 int allocate_block(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    const uint32_t num_block_groups,
+    const ext2_group_desc_table *block_group_descriptor_table,
     uint32_t *new_block_num_out
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL || new_block_num_out == NULL) {
@@ -102,9 +100,9 @@ int allocate_block(
         return -2; // Memory allocation failure
     }
 
-    for (uint32_t group_idx = 0; group_idx < num_block_groups; ++group_idx) {
-        if (block_group_descriptor_table[group_idx].bg_free_blocks_count > 0) {
-            const uint32_t block_bitmap_block_id = block_group_descriptor_table[group_idx].bg_block_bitmap;
+    for (uint32_t group_idx = 0; group_idx < block_group_descriptor_table->groups_count; ++group_idx) {
+        if (block_group_descriptor_table->groups[group_idx].bg_free_blocks_count > 0) {
+            const uint32_t block_bitmap_block_id = block_group_descriptor_table->groups[group_idx].bg_block_bitmap;
 
             if (read_bitmap(file, superblock, block_bitmap_block_id, bitmap_buffer) != 0) {
                 fprintf(stderr, "Failed to read block bitmap for group %u\n", group_idx);
@@ -129,11 +127,11 @@ int allocate_block(
             }
 
             // Update counts
-            block_group_descriptor_table[group_idx].bg_free_blocks_count--;
+            block_group_descriptor_table->groups[group_idx].bg_free_blocks_count--;
             superblock->s_free_blocks_count--;
 
             // Write updated group descriptor and superblock back to disk
-            if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table[group_idx]) != 0) {
+            if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != 0) {
                 fprintf(stderr, "Failed to write updated group descriptor for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return -5;

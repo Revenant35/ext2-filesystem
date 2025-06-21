@@ -140,61 +140,65 @@ int write_single_group_descriptor(
     return SUCCESS;
 }
 
-ext2_group_desc *read_all_group_descriptors(
+ext2_group_desc_table *read_all_group_descriptors(
     FILE *file,
-    const ext2_super_block *superblock,
-    uint32_t *num_groups_read_out
+    const ext2_super_block *superblock
 ) {
-    if (file == NULL || superblock == NULL || num_groups_read_out == NULL) {
+    if (file == NULL || superblock == NULL) {
         fprintf(stderr, "Error: NULL pointer passed to read_all_group_descriptors.\n");
-        if (num_groups_read_out) *num_groups_read_out = 0;
         return nullptr;
     }
 
     const uint32_t num_groups = get_num_block_groups(superblock);
     if (num_groups == 0) {
         fprintf(stderr, "Error: Filesystem has 0 block groups according to superblock.\n");
-        *num_groups_read_out = 0;
         return nullptr;
     }
 
-    *num_groups_read_out = 0;
-
-    ext2_group_desc *gdt_table = malloc(num_groups * sizeof(ext2_group_desc));
-    if (gdt_table == NULL) {
+    ext2_group_desc *block_group_descriptors = malloc(num_groups * sizeof(ext2_group_desc));
+    if (block_group_descriptors == NULL) {
         perror("Error allocating memory for BLOCK_GROUP_DESCRIPTOR_TABLE table");
         return nullptr;
     }
 
-    memset(gdt_table, 0, num_groups * sizeof(ext2_group_desc));
+    memset(block_group_descriptors, 0, num_groups * sizeof(ext2_group_desc));
 
     const off_t bgdt_start_offset = get_table_offset(superblock);
 
     if (fseeko(file, bgdt_start_offset, SEEK_SET) != 0) {
         perror("Error seeking to start of BLOCK_GROUP_DESCRIPTOR_TABLE");
-        free(gdt_table);
+        free(block_group_descriptors);
         return nullptr;
     }
 
-    const size_t items_read = fread(gdt_table, sizeof(ext2_group_desc), num_groups, file);
+    const size_t items_read = fread(block_group_descriptors, sizeof(ext2_group_desc), num_groups, file);
     if (items_read != num_groups) {
         if (feof(file)) {
             fprintf(stderr, "Error reading BLOCK_GROUP_DESCRIPTOR_TABLE: unexpected end of file. Expected %u groups, read %zu.\n", num_groups,
                     items_read);
-            free(gdt_table);
+            free(block_group_descriptors);
             return nullptr;
         }
 
         if (ferror(file)) {
             perror("Error reading BLOCK_GROUP_DESCRIPTOR_TABLE");
-            free(gdt_table);
+            free(block_group_descriptors);
             return nullptr;
         }
 
-        free(gdt_table);
+        free(block_group_descriptors);
         return nullptr;
     }
 
-    *num_groups_read_out = num_groups;
-    return gdt_table;
+    ext2_group_desc_table *table = malloc(sizeof(ext2_group_desc_table));
+    if (table == NULL) {
+        perror("Error allocating memory for BLOCK_GROUP_DESCRIPTOR_TABLE table");
+        free(block_group_descriptors);
+        return nullptr;
+    }
+
+    table->groups = block_group_descriptors;
+    table->groups_count = num_groups;
+
+    return table;
 }

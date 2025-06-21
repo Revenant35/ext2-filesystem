@@ -18,15 +18,13 @@
  * @param file Pointer to the filesystem image file, opened for reading and writing.
  * @param superblock Pointer to the superblock structure (will be updated if an inode is allocated).
  * @param block_group_descriptor_table Pointer to the array of block group descriptors (will be updated).
- * @param num_block_groups The total number of block groups.
  * @param new_inode_num_out Pointer to a uint32_t where the number of the newly allocated inode will be stored.
  * @return 0 on success, or a negative error code on failure.
  */
 int allocate_inode(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    uint32_t num_block_groups,
+    const ext2_group_desc_table *block_group_descriptor_table,
     uint32_t *new_inode_num_out
 );
 
@@ -40,15 +38,13 @@ int allocate_inode(
  * @param file Pointer to the filesystem image file, opened for reading and writing.
  * @param superblock Pointer to the superblock structure (will be updated).
  * @param block_group_descriptor_table Pointer to the array of block group descriptors (will be updated).
- * @param num_block_groups The total number of block groups.
  * @param new_block_num_out Pointer to a uint32_t where the number of the newly allocated block will be stored.
  * @return 0 on success, or a negative error code on failure.
  */
 int allocate_block(
     FILE *file,
     ext2_super_block *superblock,
-    ext2_group_desc *block_group_descriptor_table,
-    uint32_t num_block_groups,
+    const ext2_group_desc_table *block_group_descriptor_table,
     uint32_t *new_block_num_out
 );
 
