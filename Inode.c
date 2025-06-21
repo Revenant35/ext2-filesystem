@@ -61,7 +61,7 @@ static int calculate_inode_disk_offset(
     const off_t inode_offset_in_table_bytes = (off_t)inode_index_in_group * inode_size;
 
     *offset_out = inode_table_start_byte_offset + inode_offset_in_table_bytes;
-    return 0; // Success
+    return SUCCESS;
 }
 
 /**
@@ -128,7 +128,7 @@ int read_inode(
         return -7;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 /**
@@ -181,5 +181,5 @@ int write_inode(
     
     // fflush(file); // Optional: ensure data is written to disk immediately.
 
-    return 0; // Success
+    return SUCCESS;
 }

@@ -254,5 +254,5 @@ int main(int argc, char *argv[]) {
 
     test_create_directory(filename);
 
-    return 0;
+    return SUCCESS;
 }

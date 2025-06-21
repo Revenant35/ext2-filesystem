@@ -141,7 +141,7 @@ int list_directory_entries(
     }
 
     free(block_buffer);
-    return 0; // Success
+    return SUCCESS;
 }
 
 int add_directory_entry(
@@ -201,7 +201,7 @@ int add_directory_entry(
                 fwrite(block_buffer, block_size, 1, file);
 
                 free(block_buffer);
-                return 0; // Success
+                return SUCCESS;
             }
 
             // Move to the next entry
@@ -252,7 +252,7 @@ int add_directory_entry(
     fwrite(block_buffer, block_size, 1, file);
 
     free(block_buffer);
-    return 0;
+    return SUCCESS;
 }
 
 int create_directory(
@@ -327,5 +327,5 @@ int create_directory(
         *new_inode_num_out = new_inode_num;
     }
 
-    return 0;
+    return SUCCESS;
 }

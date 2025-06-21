@@ -41,7 +41,7 @@ uint32_t get_block_size(
     const ext2_super_block *superblock
 ) {
     if (superblock == NULL) {
-        return 0;
+        return SUCCESS;
     }
     return 1024 << superblock->s_log_block_size;
 }
@@ -50,7 +50,7 @@ off_t get_table_offset(
     const ext2_super_block *superblock
 ) {
     if (superblock == NULL) {
-        return 0;
+        return SUCCESS;
     }
     const uint32_t block_size = get_block_size(superblock);
     return (off_t) block_size * (block_size == 1024 ? 2 : 1);
@@ -61,7 +61,7 @@ off_t get_descriptor_offset(
     const uint64_t group_index
 ) {
     if (superblock == NULL) {
-        return 0;
+        return SUCCESS;
     }
     return (off_t) group_index * sizeof(ext2_group_desc) + get_table_offset(superblock);
 }
@@ -70,7 +70,7 @@ uint32_t get_num_block_groups(
     const ext2_super_block *superblock
 ) {
     if (superblock == NULL) {
-        return 0;
+        return SUCCESS;
     }
     const uint32_t num_block_groups_by_blocks = count_block_groups_by_blocks(superblock);
     const uint32_t num_block_groups_by_inodes = count_block_groups_by_inodes(superblock);
@@ -117,7 +117,7 @@ int read_single_group_descriptor(
         return -3;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 int write_single_group_descriptor(
@@ -146,7 +146,7 @@ int write_single_group_descriptor(
         return -3;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 ext2_group_desc *read_all_group_descriptors(

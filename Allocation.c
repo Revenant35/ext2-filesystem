@@ -75,7 +75,7 @@ int allocate_inode(
 
                 *new_inode_num_out = group_idx * superblock->s_inodes_per_group + free_bit_idx + 1;
                 free(bitmap_buffer);
-                return 0; // Success
+                return SUCCESS; // Success
             }
         }
     }
@@ -147,7 +147,7 @@ int allocate_block(
             // The first data block is at superblock->s_first_data_block (usually 0 or 1)
             *new_block_num_out = group_idx * superblock->s_blocks_per_group + superblock->s_first_data_block + free_bit_idx;
             free(bitmap_buffer);
-            return 0; // Success
+            return SUCCESS; // Success
         }
     }
 
