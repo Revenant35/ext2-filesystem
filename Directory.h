@@ -1,5 +1,5 @@
-#ifndef C_EXT2_FILESYSTEM_DIRECTORY_H
-#define C_EXT2_FILESYSTEM_DIRECTORY_H
+#ifndef DIRECTORY_H
+#define DIRECTORY_H
 
 #include <stdint.h>
 #include <stdio.h>
@@ -43,13 +43,13 @@ struct ext2_dir_entry_2 {
  * the details of each directory entry found within those blocks.
  * Currently, it only processes direct blocks (i_block[0] to i_block[11]).
  *
- * @param fp Pointer to an open FILE stream for the filesystem image.
- * @param sb Pointer to the filesystem's superblock.
- * @param gdt Pointer to the array of block group descriptors (the GDT).
+ * @param file Pointer to an open FILE stream for the filesystem image.
+ * @param superblock Pointer to the filesystem's superblock.
+ * @param block_group_descriptor_table Pointer to the array of block group descriptors (the BLOCK_GROUP_DESCRIPTOR_TABLE).
  * @param dir_inode_num The inode number of the directory to list.
  * @return 0 on success, or a negative error code on failure.
  */
-int list_directory_entries(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt, uint32_t dir_inode_num);
+int list_directory_entries(FILE *file, const struct ext2_super_block *superblock, const struct ext2_group_desc *block_group_descriptor_table, uint32_t dir_inode_num);
 
 /**
  * @brief Creates a new directory.
@@ -62,16 +62,24 @@ int list_directory_entries(FILE *fp, const struct ext2_super_block *sb, const st
  * 5. Adds an entry for the new directory into its parent directory.
  * 6. Updates all on-disk structures (bitmaps, superblock, group descriptors, inodes).
  *
- * @param fp                Pointer to the filesystem image file.
- * @param sb                Pointer to the superblock (will be updated).
- * @param gdt               Pointer to the GDT (will be updated).
+ * @param file                Pointer to the filesystem image file.
+ * @param superblock                Pointer to the superblock (will be updated).
+ * @param block_group_descriptor_table               Pointer to the BLOCK_GROUP_DESCRIPTOR_TABLE (will be updated).
  * @param num_block_groups  Total number of block groups.
  * @param parent_inode_num  Inode number of the parent directory.
  * @param new_dir_name      The name for the new directory.
  * @param new_inode_num_out Pointer to store the newly created inode number.
  * @return 0 on success, or a negative error code on failure.
  */
-int create_directory(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc *gdt, uint32_t num_block_groups, uint32_t parent_inode_num, const char *new_dir_name, uint32_t *new_inode_num_out);
+int create_directory(
+    FILE *file,
+    struct ext2_super_block *superblock,
+    struct ext2_group_desc *block_group_descriptor_table,
+    uint32_t num_block_groups,
+    uint32_t parent_inode_num,
+    const char *new_dir_name,
+    uint32_t *new_inode_num_out
+);
 
 /**
  * @brief (Helper) Adds a new entry to a directory's data block(s).
@@ -81,17 +89,25 @@ int create_directory(FILE *fp, struct ext2_super_block *sb, struct ext2_group_de
  * inode in memory (e.g., size, block count) but does NOT write it to disk.
  * The caller is responsible for writing the modified parent inode.
  *
- * @param fp                Pointer to the filesystem image file.
- * @param sb                Pointer to the superblock.
- * @param gdt               Pointer to the GDT.
+ * @param file                Pointer to the filesystem image file.
+ * @param superblock                Pointer to the superblock.
+ * @param block_group_descriptor_table               Pointer to the BLOCK_GROUP_DESCRIPTOR_TABLE.
  * @param num_block_groups  Total number of block groups.
  * @param parent_inode      Pointer to the parent directory's inode (will be updated in memory).
- * @param parent_inode_num  Inode number of the parent directory.
  * @param new_entry_inode_num Inode number for the new entry.
  * @param new_entry_name    Name for the new entry.
  * @param new_entry_type    File type for the new entry (EXT2_FT_*).
  * @return 0 on success, or a negative error code on failure.
  */
-int add_directory_entry(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc *gdt, uint32_t num_block_groups, struct ext2_inode *parent_inode, uint32_t parent_inode_num, uint32_t new_entry_inode_num, const char *new_entry_name, uint8_t new_entry_type);
+int add_directory_entry(
+    FILE *file,
+    struct ext2_super_block *superblock,
+    struct ext2_group_desc *block_group_descriptor_table,
+    uint32_t num_block_groups,
+    struct ext2_inode *parent_inode,
+    uint32_t new_entry_inode_num,
+    const char *new_entry_name,
+    uint8_t new_entry_type
+);
 
-#endif //C_EXT2_FILESYSTEM_DIRECTORY_H
+#endif //DIRECTORY_H

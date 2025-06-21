@@ -43,10 +43,12 @@ struct ext2_group_desc {
 
 /**
  * @brief Calculates the block size of the filesystem.
- * @param sb Pointer to the superblock structure.
+ * @param superblock Pointer to the superblock structure.
  * @return The block size in bytes.
  */
-uint32_t get_block_size(const struct ext2_super_block *sb);
+uint32_t get_block_size(
+    const struct ext2_super_block *superblock
+);
 
 /**
  * @brief Calculates the starting byte offset of the Block Group Descriptor Table (BGDT).
@@ -55,18 +57,23 @@ uint32_t get_block_size(const struct ext2_super_block *sb);
  * If the block size is 1024 bytes, the superblock occupies block 1, so BGDT starts at block 2.
  * If the block size is > 1024 bytes, the superblock is in block 0, so BGDT starts at block 1.
  *
- * @param sb Pointer to the superblock structure.
+ * @param superblock Pointer to the superblock structure.
  * @return The starting byte offset of the BGDT from the beginning of the filesystem.
  */
-off_t get_table_offset(const struct ext2_super_block *sb);
+off_t get_table_offset(
+    const struct ext2_super_block *superblock
+);
 
 /**
  * @brief Calculates the byte offset of a specific block group descriptor within the BGDT.
- * @param sb Pointer to the superblock structure.
+ * @param superblock Pointer to the superblock structure.
  * @param group_index The 0-based index of the target block group.
  * @return The byte offset of the specified group descriptor from the beginning of the filesystem.
  */
-off_t get_descriptor_offset(const struct ext2_super_block *sb, uint64_t group_index);
+off_t get_descriptor_offset(
+    const struct ext2_super_block *superblock,
+    uint64_t group_index
+);
 
 /**
  * @brief Calculates the total number of block groups in the filesystem.
@@ -76,32 +83,44 @@ off_t get_descriptor_offset(const struct ext2_super_block *sb, uint64_t group_in
  * should ideally yield the same result. This function performs both and issues
  * a warning if they differ, then returns the count based on blocks.
  *
- * @param sb Pointer to the superblock structure.
+ * @param superblock Pointer to the superblock structure.
  * @return The total number of block groups.
  */
-uint32_t get_num_block_groups(const struct ext2_super_block *sb);
+uint32_t get_num_block_groups(
+    const struct ext2_super_block *superblock
+);
 
 /**
  * @brief Reads a single block group descriptor from the filesystem image.
  *
- * @param fp Pointer to an open FILE stream for the filesystem image.
- * @param sb Pointer to the filesystem's superblock (already read into memory).
+ * @param file Pointer to an open FILE stream for the filesystem image.
+ * @param superblock Pointer to the filesystem's superblock (already read into memory).
  * @param group_index The index of the block group descriptor to read (0-based).
  * @param group_desc_out Pointer to an `ext2_group_desc` structure to populate with the read data.
  * @return 0 on success, or a negative error code on failure.
  */
-int read_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, uint32_t group_index, struct ext2_group_desc *group_desc_out);
+int read_single_group_descriptor(
+    FILE *file,
+    const struct ext2_super_block *superblock,
+    uint32_t group_index,
+    struct ext2_group_desc *group_desc_out
+);
 
 /**
  * @brief Writes a single block group descriptor from memory to the filesystem image.
  *
- * @param fp Pointer to an open FILE stream for the filesystem image.
- * @param sb Pointer to the filesystem's superblock.
+ * @param file Pointer to an open FILE stream for the filesystem image.
+ * @param superblock Pointer to the filesystem's superblock.
  * @param group_index The 0-based index of the block group descriptor to write.
  * @param group_desc_in Pointer to an `ext2_group_desc` structure containing the data to write.
  * @return 0 on success, or a negative error code on failure.
  */
-int write_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, uint32_t group_index, const struct ext2_group_desc *group_desc_in);
+int write_single_group_descriptor(
+    FILE *file,
+    const struct ext2_super_block *superblock,
+    uint32_t group_index,
+    const struct ext2_group_desc *group_desc_in
+);
 
 /**
  * @brief Reads all block group descriptors from the filesystem image into an array.
@@ -110,14 +129,18 @@ int write_single_group_descriptor(FILE *fp, const struct ext2_super_block *sb, u
  * Block Group Descriptor Table (BGDT), and reads all descriptors.
  * The caller is responsible for freeing the allocated memory for the returned array.
  *
- * @param fp Pointer to an open FILE stream for the filesystem image.
- * @param sb Pointer to the filesystem's superblock (already read into memory).
+ * @param file Pointer to an open FILE stream for the filesystem image.
+ * @param superblock Pointer to the filesystem's superblock (already read into memory).
  * @param num_groups_read_out Pointer to a `uint32_t` that will be populated with the
  *                            number of group descriptors successfully read (which is also
  *                            the number of block groups in the filesystem).
- * @return Pointer to an array of `ext2_group_desc` structures (the GDT), or NULL on failure.
+ * @return Pointer to an array of `ext2_group_desc` structures (the BLOCK_GROUP_DESCRIPTOR_TABLE), or NULL on failure.
  *         If NULL is returned, `num_groups_read_out` will be set to 0.
  */
-struct ext2_group_desc* read_all_group_descriptors(FILE *fp, const struct ext2_super_block *sb, uint32_t *num_groups_read_out);
+struct ext2_group_desc* read_all_group_descriptors(
+    FILE *file,
+    const struct ext2_super_block *superblock,
+    uint32_t *num_groups_read_out
+);
 
 #endif // BLOCK_GROUP_H

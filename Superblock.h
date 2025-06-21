@@ -97,7 +97,7 @@ struct ext2_super_block {
     uint32_t   s_algo_bitmap;          // For compression (usage varies)
     uint8_t    s_prealloc_blocks;      // Number of blocks to preallocate for files
     uint8_t    s_prealloc_dir_blocks;  // Number of blocks to preallocate for directories
-    uint16_t   s_reserved_gdt_blocks;  // Number of reserved GDT blocks for future expansion
+    uint16_t   s_reserved_gdt_blocks;  // Number of reserved BLOCK_GROUP_DESCRIPTOR_TABLE blocks for future expansion
     uint8_t    s_journal_uuid[16];     // UUID of journal superblock
     uint32_t   s_journal_inum;         // Inode number of journal file
     uint32_t   s_journal_dev;          // Device number of journal file
@@ -154,18 +154,24 @@ struct ext2_super_block {
 
 /**
  * @brief Reads the superblock from an open file stream into memory.
- * @param fp Pointer to an open FILE stream (e.g., from an ext2 image file).
- * @param sb Pointer to an ext2_super_block structure to populate.
+ * @param file Pointer to an open FILE stream (e.g., from an ext2 image file).
+ * @param superblock Pointer to an ext2_super_block structure to populate.
  * @return 0 on success, non-zero on failure (e.g., I/O error, magic number mismatch).
  */
-int read_superblock(FILE *fp, struct ext2_super_block *sb);
+int read_superblock(
+    FILE *file,
+    struct ext2_super_block *superblock
+);
 
 /**
  * @brief Writes the superblock from memory to an open file stream.
- * @param fp Pointer to an open FILE stream (e.g., for an ext2 image file).
- * @param sb Pointer to an ext2_super_block structure containing the data to write.
+ * @param file Pointer to an open FILE stream (e.g., for an ext2 image file).
+ * @param superblock Pointer to an ext2_super_block structure containing the data to write.
  * @return 0 on success, non-zero on failure (e.g., I/O error, invalid superblock data).
  */
-int write_superblock(FILE *fp, const struct ext2_super_block *sb);
+int write_superblock(
+    FILE *file,
+    const struct ext2_super_block *superblock
+);
 
 #endif //SUPERBLOCK_H

@@ -10,62 +10,62 @@
 // Function to list the root directory entries
 void test_create_directory(const char *filesystem_image_path) {
     printf("\n--- Testing Directory Creation ---\n");
-    FILE *fp = fopen(filesystem_image_path, "r+");
-    if (!fp) {
+    FILE *file = fopen(filesystem_image_path, "r+");
+    if (!file) {
         perror("Failed to open filesystem image for writing");
         return;
     }
 
-    struct ext2_super_block sb;
-    if (read_superblock(fp, &sb) != 0) {
-        fclose(fp);
+    struct ext2_super_block superblock;
+    if (read_superblock(file, &superblock) != 0) {
+        fclose(file);
         return;
     }
 
     uint32_t num_groups;
-    struct ext2_group_desc *gdt = read_all_group_descriptors(fp, &sb, &num_groups);
-    if (!gdt) {
-        fclose(fp);
+    struct ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups);
+    if (!block_group_descriptor_table) {
+        fclose(file);
         return;
     }
 
     printf("Attempting to create '/new_dir'...\n");
     uint32_t new_inode;
-    if (create_directory(fp, &sb, gdt, num_groups, EXT2_ROOT_INO, "new_dir", &new_inode) == 0) {
+    if (create_directory(file, &superblock, block_group_descriptor_table, num_groups, EXT2_ROOT_INO, "new_dir", &new_inode) == 0) {
         printf("Successfully created '/new_dir' with inode %u\n", new_inode);
     } else {
         fprintf(stderr, "Failed to create directory.\n");
     }
 
     printf("\n--- Listing Root Directory After Creation ---\n");
-    list_directory_entries(fp, &sb, gdt, EXT2_ROOT_INO);
+    list_directory_entries(file, &superblock, block_group_descriptor_table, EXT2_ROOT_INO);
 
-    free(gdt);
-    fclose(fp);
+    free(block_group_descriptor_table);
+    fclose(file);
     printf("--- Test Complete ---\n");
 }
 
 void list_root_directory(const char *filesystem_image_path) {
     printf("\n--- Listing Root Directory Entries from %s ---\n", filesystem_image_path);
 
-    FILE *fp = fopen(filesystem_image_path, "rb");
-    if (fp == NULL) {
+    FILE *file = fopen(filesystem_image_path, "rb");
+    if (file == NULL) {
         perror("Error opening filesystem image for root directory listing");
         return;
     }
 
-    struct ext2_super_block sb;
-    if (read_superblock(fp, &sb) != 0) {
+    struct ext2_super_block superblock;
+    if (read_superblock(file, &superblock) != 0) {
         fprintf(stderr, "Failed to read superblock for root directory listing.\n");
-        fclose(fp);
+        fclose(file);
         return;
     }
 
     uint32_t num_groups_read = 0;
-    struct ext2_group_desc *gdt = read_all_group_descriptors(fp, &sb, &num_groups_read);
-    if (gdt == NULL) {
+    struct ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(file, &superblock, &num_groups_read);
+    if (block_group_descriptor_table == NULL) {
         fprintf(stderr, "Failed to read block group descriptors for root directory listing.\n");
-        fclose(fp);
+        fclose(file);
         return;
     }
 
@@ -73,13 +73,13 @@ void list_root_directory(const char *filesystem_image_path) {
     // EXT2_ROOT_INO is defined as 2 in ext2_fs.h, commonly used in ext2 implementations.
     // If not available in your Inode.h, you might need to define it or use 2 directly.
     // Assuming Inode.h might have it or it's a common understanding.
-    int list_status = list_directory_entries(fp, &sb, gdt, EXT2_ROOT_INO);
+    int list_status = list_directory_entries(file, &superblock, block_group_descriptor_table, EXT2_ROOT_INO);
     if (list_status != 0) {
         fprintf(stderr, "Failed to list root directory entries. Error code: %d\n", list_status);
     }
 
-    free(gdt);
-    if (fclose(fp) != 0) {
+    free(block_group_descriptor_table);
+    if (fclose(file) != 0) {
         perror("Error closing filesystem image after listing root directory");
     }
     printf("--- Root directory listing complete. ---\n");
@@ -101,8 +101,8 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Attempting to read superblock from: %s\n", filename);
-    struct ext2_super_block sb;
-    int read_status = read_superblock(fp_orig_img, &sb);
+    struct ext2_super_block superblock;
+    int read_status = read_superblock(fp_orig_img, &superblock);
 
     if (read_status != 0) {
         fprintf(stderr, "Failed to successfully process superblock from %s. Error code: %d\n", filename, read_status);
@@ -110,52 +110,52 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Superblock read successfully!\n");
-    printf("  Magic number: 0x%X\n", sb.s_magic);
-    printf("  Inodes count: %u\n", sb.s_inodes_count);
-    printf("  Blocks count: %u\n", sb.s_blocks_count);
-    printf("  Free blocks count: %u\n", sb.s_free_blocks_count);
-    printf("  Free inodes count: %u\n", sb.s_free_inodes_count);
-    printf("  Block size (log2): %u (Actual: %u bytes)\n", sb.s_log_block_size, 1024 << sb.s_log_block_size);
-    printf("  Blocks per group: %u\n", sb.s_blocks_per_group);
-    printf("  Inodes per group: %u\n", sb.s_inodes_per_group);
+    printf("  Magic number: 0x%X\n", superblock.s_magic);
+    printf("  Inodes count: %u\n", superblock.s_inodes_count);
+    printf("  Blocks count: %u\n", superblock.s_blocks_count);
+    printf("  Free blocks count: %u\n", superblock.s_free_blocks_count);
+    printf("  Free inodes count: %u\n", superblock.s_free_inodes_count);
+    printf("  Block size (log2): %u (Actual: %u bytes)\n", superblock.s_log_block_size, 1024 << superblock.s_log_block_size);
+    printf("  Blocks per group: %u\n", superblock.s_blocks_per_group);
+    printf("  Inodes per group: %u\n", superblock.s_inodes_per_group);
 
     // Print File System State
     printf("  File System State: ");
-    switch (sb.s_state) {
+    switch (superblock.s_state) {
         case EXT2_VALID_FS: printf("Cleanly unmounted\n"); break;
         case EXT2_ERROR_FS: printf("Errors detected\n"); break;
-        default: printf("Unknown (%u)\n", sb.s_state); break;
+        default: printf("Unknown (%u)\n", superblock.s_state); break;
     }
 
     // Print Error Handling Method
     printf("  Error Handling: ");
-    switch (sb.s_errors) {
+    switch (superblock.s_errors) {
         case EXT2_ERRORS_CONTINUE: printf("Continue\n"); break;
         case EXT2_ERRORS_RO: printf("Remount read-only\n"); break;
         case EXT2_ERRORS_PANIC: printf("Panic\n"); break;
-        default: printf("Unknown (%u)\n", sb.s_errors); break;
+        default: printf("Unknown (%u)\n", superblock.s_errors); break;
     }
 
     // Print Creator OS
     printf("  Creator OS: ");
-    switch (sb.s_creator_os) {
+    switch (superblock.s_creator_os) {
         case EXT2_OS_LINUX: printf("Linux\n"); break;
         case EXT2_OS_HURD: printf("GNU HURD\n"); break;
         case EXT2_OS_MASIX: printf("MASIX\n"); break;
         case EXT2_OS_FREEBSD: printf("FreeBSD\n"); break;
         case EXT2_OS_LITES: printf("Lites\n"); break;
-        default: printf("Unknown (%u)\n", sb.s_creator_os); break;
+        default: printf("Unknown (%u)\n", superblock.s_creator_os); break;
     }
 
-    printf("  Revision level: %u\n", sb.s_rev_level);
-    if (sb.s_rev_level >= EXT2_DYNAMIC_REV) {
-        printf("  Inode size: %u bytes\n", sb.s_inode_size);
-        printf("  Volume name: %.16s\n", sb.s_volume_name);
+    printf("  Revision level: %u\n", superblock.s_rev_level);
+    if (superblock.s_rev_level >= EXT2_DYNAMIC_REV) {
+        printf("  Inode size: %u bytes\n", superblock.s_inode_size);
+        printf("  Volume name: %.16s\n", superblock.s_volume_name);
     }
 
     // --- Test write_superblock functionality ---
     const char *output_filename = "test_output.img";
-    struct ext2_super_block sb_read_back;
+    struct ext2_super_block superblock_read_back;
     int read_back_status;
 
     printf("\n--- Testing write_superblock to %s ---\n", output_filename);
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
 
     // Write the original superblock to the new file
     printf("Attempting to write superblock to %s\n", output_filename);
-    int write_status = write_superblock(fp_out, &sb);
+    int write_status = write_superblock(fp_out, &superblock);
     if (write_status != 0) {
         fprintf(stderr, "Failed to write superblock to %s. Error code: %d\n", output_filename, write_status);
         // Still need to close fp_out before exiting
@@ -180,14 +180,14 @@ int main(int argc, char *argv[]) {
         // Now, read it back from the same file
         printf("Attempting to read back superblock from %s\n", output_filename);
         // read_superblock will fseek from the beginning, so no explicit rewind needed after write
-        read_back_status = read_superblock(fp_out, &sb_read_back);
+        read_back_status = read_superblock(fp_out, &superblock_read_back);
         if (read_back_status != 0) {
             fprintf(stderr, "Failed to read back superblock from %s. Error code: %d\n", output_filename, read_back_status);
         } else {
             printf("Superblock read back successfully from %s.\n", output_filename);
 
             // Compare the original superblock with the one read back
-            if (memcmp(&sb, &sb_read_back, sizeof(struct ext2_super_block)) == 0) {
+            if (memcmp(&superblock, &superblock_read_back, sizeof(struct ext2_super_block)) == 0) {
                 printf("SUCCESS: Original superblock and read-back superblock are identical.\n");
             } else {
                 fprintf(stderr, "FAILURE: Original superblock and read-back superblock differ!\n");
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Determine final exit status based on test outcomes
-    if (write_status != 0 || read_back_status != 0 || memcmp(&sb, &sb_read_back, sizeof(struct ext2_super_block)) != 0) {
+    if (write_status != 0 || read_back_status != 0 || memcmp(&superblock, &superblock_read_back, sizeof(struct ext2_super_block)) != 0) {
         fprintf(stderr, "--- write_superblock test FAILED. ---\n");
         return EXIT_FAILURE;
     }
@@ -215,17 +215,17 @@ int main(int argc, char *argv[]) {
     // --- Read and print Block Group Descriptors ---
     printf("\n--- Reading Block Group Descriptors ---\n");
     uint32_t num_groups_read = 0;
-    struct ext2_group_desc *gdt = read_all_group_descriptors(fp_orig_img, &sb, &num_groups_read);
+    struct ext2_group_desc *block_group_descriptor_table = read_all_group_descriptors(fp_orig_img, &superblock, &num_groups_read);
 
     // Close the original image file pointer AFTER we are done with all reads from it
     if (fclose(fp_orig_img) != 0) {
         perror("Error closing original image file");
         // Decide if this should be a fatal error for the rest of the program flow
-        if (gdt != NULL) free(gdt); // Clean up if GDT was read before close error
+        if (block_group_descriptor_table != NULL) free(block_group_descriptor_table); // Clean up if BLOCK_GROUP_DESCRIPTOR_TABLE was read before close error
         return EXIT_FAILURE; 
     }
 
-    if (gdt == NULL) {
+    if (block_group_descriptor_table == NULL) {
         fprintf(stderr, "Failed to read block group descriptors.\n");
         return EXIT_FAILURE;
     }
@@ -234,22 +234,22 @@ int main(int argc, char *argv[]) {
     uint32_t groups_to_print = num_groups_read < 3 ? num_groups_read : 3; // Print up to 3 groups
     for (uint32_t i = 0; i < groups_to_print; ++i) {
         printf("  Group %u:\n", i);
-        printf("    Block Bitmap Block: %u\n", gdt[i].bg_block_bitmap);
-        printf("    Inode Bitmap Block: %u\n", gdt[i].bg_inode_bitmap);
-        printf("    Inode Table Block:  %u\n", gdt[i].bg_inode_table);
-        printf("    Free Blocks:      %u\n", gdt[i].bg_free_blocks_count);
-        printf("    Free Inodes:      %u\n", gdt[i].bg_free_inodes_count);
-        printf("    Used Dirs:        %u\n", gdt[i].bg_used_dirs_count);
-        printf("    Flags:            0x%X\n", gdt[i].bg_flags);
+        printf("    Block Bitmap Block: %u\n", block_group_descriptor_table[i].bg_block_bitmap);
+        printf("    Inode Bitmap Block: %u\n", block_group_descriptor_table[i].bg_inode_bitmap);
+        printf("    Inode Table Block:  %u\n", block_group_descriptor_table[i].bg_inode_table);
+        printf("    Free Blocks:      %u\n", block_group_descriptor_table[i].bg_free_blocks_count);
+        printf("    Free Inodes:      %u\n", block_group_descriptor_table[i].bg_free_inodes_count);
+        printf("    Used Dirs:        %u\n", block_group_descriptor_table[i].bg_used_dirs_count);
+        printf("    Flags:            0x%X\n", block_group_descriptor_table[i].bg_flags);
     }
 
-    free(gdt); // Free the allocated GDT memory
+    free(block_group_descriptor_table); // Free the allocated BLOCK_GROUP_DESCRIPTOR_TABLE memory
     printf("--- Block group descriptor processing complete. ---\n");
 
     // Call the function to list the root directory from the original image
-    // This is done after closing fp_orig_img and freeing gdt from the main scope's operations.
-    // The list_root_directory function will reopen the file and re-read sb and gdt.
-    // This keeps it self-contained. Alternatively, we could pass sb and gdt if fp_orig_img was still open.
+    // This is done after closing fp_orig_img and freeing block_group_descriptor_table from the main scope's operations.
+    // The list_root_directory function will reopen the file and re-read superblock and block_group_descriptor_table.
+    // This keeps it self-contained. Alternatively, we could pass superblock and block_group_descriptor_table if fp_orig_img was still open.
     list_root_directory(filename);
 
     test_create_directory(filename);

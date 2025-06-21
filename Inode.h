@@ -1,5 +1,5 @@
-#ifndef C_EXT2_FILESYSTEM_INODE_H
-#define C_EXT2_FILESYSTEM_INODE_H
+#ifndef INODE_H
+#define INODE_H
 
 #include <stdint.h>
 #include <stdio.h>
@@ -122,26 +122,38 @@ struct ext2_inode {
 /**
  * @brief Reads an inode from the filesystem into memory.
  *
- * @param fp Pointer to an open FILE stream for the filesystem image.
- * @param sb Pointer to the filesystem's superblock.
- * @param gdt Pointer to the array of block group descriptors (the GDT).
+ * @param file Pointer to an open FILE stream for the filesystem image.
+ * @param superblock Pointer to the filesystem's superblock.
+ * @param block_group_descriptor_table Pointer to the array of block group descriptors (the BLOCK_GROUP_DESCRIPTOR_TABLE).
  * @param inode_num The number of the inode to read (1-based).
  * @param inode_out Pointer to an `ext2_inode` structure to populate with the read data.
  * @return 0 on success, or a negative error code on failure.
  */
-int read_inode(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt, uint32_t inode_num, struct ext2_inode *inode_out);
+int read_inode(
+    FILE *file,
+    const struct ext2_super_block *superblock,
+    const struct ext2_group_desc *block_group_descriptor_table,
+    uint32_t inode_num,
+    struct ext2_inode *inode_out
+);
 
 /**
  * @brief Writes an inode from memory to the filesystem.
  *
- * @param fp Pointer to an open FILE stream for the filesystem image.
- * @param sb Pointer to the filesystem's superblock.
- * @param gdt Pointer to the array of block group descriptors (the GDT).
+ * @param file Pointer to an open FILE stream for the filesystem image.
+ * @param superblock Pointer to the filesystem's superblock.
+ * @param block_group_descriptor_table Pointer to the array of block group descriptors (the BLOCK_GROUP_DESCRIPTOR_TABLE).
  * @param inode_num The number of the inode to write (1-based).
  * @param inode_in Pointer to an `ext2_inode` structure containing the data to write.
  * @return 0 on success, or a negative error code on failure.
  */
-int write_inode(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt, uint32_t inode_num, const struct ext2_inode *inode_in);
+int write_inode(
+    FILE *file,
+    const struct ext2_super_block *superblock,
+    const struct ext2_group_desc *block_group_descriptor_table,
+    uint32_t inode_num,
+    const struct ext2_inode *inode_in
+);
 
 
-#endif //C_EXT2_FILESYSTEM_INODE_H
+#endif //INODE_H

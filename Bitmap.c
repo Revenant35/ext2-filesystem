@@ -11,20 +11,20 @@
 #include <stdio.h>
 
 int read_bitmap(
-    FILE *fp,
-    const struct ext2_super_block *sb,
+    FILE *file,
+    const struct ext2_super_block *superblock,
     const uint32_t bitmap_block_id,
     uint8_t *bitmap_buffer
 ) {
-    const uint32_t block_size = get_block_size(sb);
+    const uint32_t block_size = get_block_size(superblock);
     const off_t offset = (off_t) bitmap_block_id * block_size;
 
-    if (fseeko(fp, offset, SEEK_SET) != 0) {
+    if (fseeko(file, offset, SEEK_SET) != 0) {
         perror("read_bitmap: fseeko");
         return IO_ERROR;
     }
 
-    if (fread(bitmap_buffer, block_size, 1, fp) != 1) {
+    if (fread(bitmap_buffer, block_size, 1, file) != 1) {
         perror("read_bitmap: fread");
         return IO_ERROR;
     }
@@ -33,20 +33,20 @@ int read_bitmap(
 }
 
 int write_bitmap(
-    FILE *fp,
-    const struct ext2_super_block *sb,
+    FILE *file,
+    const struct ext2_super_block *superblock,
     const uint32_t bitmap_block_id,
     const uint8_t *bitmap_buffer
 ) {
-    const uint32_t block_size = get_block_size(sb);
+    const uint32_t block_size = get_block_size(superblock);
     const off_t offset = (off_t) bitmap_block_id * block_size;
 
-    if (fseeko(fp, offset, SEEK_SET) != 0) {
+    if (fseeko(file, offset, SEEK_SET) != 0) {
         perror("write_bitmap: fseeko");
         return IO_ERROR;
     }
 
-    if (fwrite(bitmap_buffer, block_size, 1, fp) != 1) {
+    if (fwrite(bitmap_buffer, block_size, 1, file) != 1) {
         perror("write_bitmap: fwrite");
         return IO_ERROR;
     }

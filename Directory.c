@@ -26,9 +26,9 @@
  * the details of each directory entry found within those blocks.
  * Currently, it only processes direct blocks (i_block[0] to i_block[11]).
  *
- * @param fp Pointer to an open FILE stream for the filesystem image.
- * @param sb Pointer to the filesystem's superblock.
- * @param gdt Pointer to the array of block group descriptors (the GDT).
+ * @param file Pointer to an open FILE stream for the filesystem image.
+ * @param superblock Pointer to the filesystem's superblock.
+ * @param block_group_descriptor_table Pointer to the array of block group descriptors (the BLOCK_GROUP_DESCRIPTOR_TABLE).
  * @param dir_inode_num The inode number of the directory to list.
  * @return 0 on success, or a negative error code on failure:
  *         -1: NULL pointer argument.
@@ -38,15 +38,19 @@
  *         -5: Failed to seek to data block.
  *         -6: Failed to read data block.
  */
-int list_directory_entries(FILE *fp, const struct ext2_super_block *sb, const struct ext2_group_desc *gdt,
-                           const uint32_t dir_inode_num) {
-    if (fp == NULL || sb == NULL || gdt == NULL) {
+int list_directory_entries(
+    FILE *file,
+    const struct ext2_super_block *superblock,
+    const struct ext2_group_desc *block_group_descriptor_table,
+    const uint32_t dir_inode_num
+) {
+    if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL) {
         fprintf(stderr, "Error (list_directory): NULL pointer argument provided.\n");
         return INVALID_PARAMETER;
     }
 
     struct ext2_inode dir_inode;
-    if (read_inode(fp, sb, gdt, dir_inode_num, &dir_inode) != 0) {
+    if (read_inode(file, superblock, block_group_descriptor_table, dir_inode_num, &dir_inode) != 0) {
         fprintf(stderr, "Error (list_directory): Failed to read inode %u.\n", dir_inode_num);
         return -2;
     }
@@ -59,7 +63,7 @@ int list_directory_entries(FILE *fp, const struct ext2_super_block *sb, const st
         return -3;
     }
 
-    const uint32_t block_size = get_block_size(sb);
+    const uint32_t block_size = get_block_size(superblock);
     const auto block_buffer = (char *) malloc(block_size);
     if (block_buffer == NULL) {
         fprintf(stderr, "Error (list_directory): Failed to allocate memory for block buffer.\n");
@@ -81,17 +85,17 @@ int list_directory_entries(FILE *fp, const struct ext2_super_block *sb, const st
         const uint32_t data_block_id = dir_inode.i_block[i];
         const off_t block_offset = (off_t) data_block_id * block_size;
 
-        if (fseeko(fp, block_offset, SEEK_SET) != 0) {
+        if (fseeko(file, block_offset, SEEK_SET) != 0) {
             perror("Error (list_directory): Seeking to data block");
             free(block_buffer);
             return -5;
         }
 
-        if (fread(block_buffer, block_size, 1, fp) != 1) {
-            if (feof(fp)) {
+        if (fread(block_buffer, block_size, 1, file) != 1) {
+            if (feof(file)) {
                 fprintf(stderr, "Error (list_directory): Reading data block %u: unexpected end of file.\n",
                         data_block_id);
-            } else if (ferror(fp)) {
+            } else if (ferror(file)) {
                 perror("Error (list_directory): Reading data block");
             }
             free(block_buffer);
@@ -140,10 +144,17 @@ int list_directory_entries(FILE *fp, const struct ext2_super_block *sb, const st
     return 0; // Success
 }
 
-int add_directory_entry(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc *gdt, uint32_t num_block_groups,
-                        struct ext2_inode *parent_inode, uint32_t parent_inode_num, const uint32_t new_entry_inode_num,
-                        const char *new_entry_name, const uint8_t new_entry_type) {
-    const uint32_t block_size = get_block_size(sb);
+int add_directory_entry(
+    FILE *file,
+    struct ext2_super_block *superblock,
+    struct ext2_group_desc *block_group_descriptor_table,
+    const uint32_t num_block_groups,
+    struct ext2_inode *parent_inode,
+    const uint32_t new_entry_inode_num,
+    const char *new_entry_name,
+    const uint8_t new_entry_type
+) {
+    const uint32_t block_size = get_block_size(superblock);
     const uint8_t name_len = strlen(new_entry_name);
     const uint16_t new_entry_len = EXT2_DIR_REC_LEN(name_len);
 
@@ -159,8 +170,8 @@ int add_directory_entry(FILE *fp, struct ext2_super_block *sb, struct ext2_group
         }
 
         const off_t block_offset = parent_inode->i_block[i] * block_size;
-        fseeko(fp, block_offset, SEEK_SET);
-        fread(block_buffer, block_size, 1, fp);
+        fseeko(file, block_offset, SEEK_SET);
+        fread(block_buffer, block_size, 1, file);
 
         char *current_pos = block_buffer;
         auto entry = (struct ext2_dir_entry_2 *) current_pos;
@@ -186,8 +197,8 @@ int add_directory_entry(FILE *fp, struct ext2_super_block *sb, struct ext2_group
                 strncpy(new_entry->name, new_entry_name, name_len);
 
                 // Write the modified block back to disk
-                fseeko(fp, block_offset, SEEK_SET);
-                fwrite(block_buffer, block_size, 1, fp);
+                fseeko(file, block_offset, SEEK_SET);
+                fwrite(block_buffer, block_size, 1, file);
 
                 free(block_buffer);
                 return 0; // Success
@@ -201,7 +212,7 @@ int add_directory_entry(FILE *fp, struct ext2_super_block *sb, struct ext2_group
 
     // If we are here, no space was found in existing blocks. Allocate a new one.
     uint32_t new_block_num;
-    if (allocate_block(fp, sb, gdt, num_block_groups, &new_block_num) != 0) {
+    if (allocate_block(file, superblock, block_group_descriptor_table, num_block_groups, &new_block_num) != 0) {
         free(block_buffer);
         return -2; // Failed to allocate new block
     }
@@ -237,31 +248,38 @@ int add_directory_entry(FILE *fp, struct ext2_super_block *sb, struct ext2_group
 
     // Write the new block to disk
     const off_t block_offset = new_block_num * block_size;
-    fseeko(fp, block_offset, SEEK_SET);
-    fwrite(block_buffer, block_size, 1, fp);
+    fseeko(file, block_offset, SEEK_SET);
+    fwrite(block_buffer, block_size, 1, file);
 
     free(block_buffer);
     return 0;
 }
 
-int create_directory(FILE *fp, struct ext2_super_block *sb, struct ext2_group_desc *gdt, const uint32_t num_block_groups,
-                     const uint32_t parent_inode_num, const char *new_dir_name, uint32_t *new_inode_num_out) {
+int create_directory(
+    FILE *file,
+    struct ext2_super_block *superblock,
+    struct ext2_group_desc *block_group_descriptor_table,
+    const uint32_t num_block_groups,
+    const uint32_t parent_inode_num,
+    const char *new_dir_name,
+    uint32_t *new_inode_num_out
+) {
     if (strlen(new_dir_name) > EXT2_NAME_LEN) {
         return -1; // Name too long
     }
 
     uint32_t new_inode_num;
-    if (allocate_inode(fp, sb, gdt, num_block_groups, &new_inode_num) != 0) {
+    if (allocate_inode(file, superblock, block_group_descriptor_table, num_block_groups, &new_inode_num) != 0) {
         return -2; // Failed to allocate inode
     }
 
     uint32_t new_block_num;
-    if (allocate_block(fp, sb, gdt, num_block_groups, &new_block_num) != 0) {
+    if (allocate_block(file, superblock, block_group_descriptor_table, num_block_groups, &new_block_num) != 0) {
         // TODO: Deallocate inode
         return -3; // Failed to allocate block
     }
 
-    const uint32_t block_size = get_block_size(sb);
+    const uint32_t block_size = get_block_size(superblock);
 
     // Initialize the new directory's inode
     struct ext2_inode new_inode = {0};
@@ -290,21 +308,20 @@ int create_directory(FILE *fp, struct ext2_super_block *sb, struct ext2_group_de
     parent_entry->rec_len = block_size - self_entry->rec_len;
 
     // Write the new block to disk
-    fseeko(fp, (off_t) new_block_num * block_size, SEEK_SET);
-    fwrite(block_buffer, block_size, 1, fp);
+    fseeko(file, (off_t) new_block_num * block_size, SEEK_SET);
+    fwrite(block_buffer, block_size, 1, file);
     free(block_buffer);
 
     // Add entry to parent directory
     struct ext2_inode parent_inode;
-    read_inode(fp, sb, gdt, parent_inode_num, &parent_inode);
-    add_directory_entry(fp, sb, gdt, num_block_groups, &parent_inode, parent_inode_num, new_inode_num, new_dir_name,
-                        EXT2_FT_DIR);
+    read_inode(file, superblock, block_group_descriptor_table, parent_inode_num, &parent_inode);
+    add_directory_entry(file, superblock, block_group_descriptor_table, num_block_groups, &parent_inode, new_inode_num, new_dir_name, EXT2_FT_DIR);
     parent_inode.i_links_count++;
     parent_inode.i_mtime = parent_inode.i_ctime = time(nullptr);
-    write_inode(fp, sb, gdt, parent_inode_num, &parent_inode);
+    write_inode(file, superblock, block_group_descriptor_table, parent_inode_num, &parent_inode);
 
     // Write the new inode to disk
-    write_inode(fp, sb, gdt, new_inode_num, &new_inode);
+    write_inode(file, superblock, block_group_descriptor_table, new_inode_num, &new_inode);
 
     if (new_inode_num_out) {
         *new_inode_num_out = new_inode_num;

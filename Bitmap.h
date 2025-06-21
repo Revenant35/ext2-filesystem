@@ -12,15 +12,15 @@ struct ext2_super_block;
  *
  * The caller is responsible for providing a buffer of `block_size` bytes.
  *
- * @param fp Pointer to the filesystem image file.
- * @param sb Pointer to the superblock.
+ * @param file Pointer to the filesystem image file.
+ * @param superblock Pointer to the superblock.
  * @param bitmap_block_id The block ID where the bitmap is located.
  * @param bitmap_buffer The buffer to read the bitmap into.
  * @return 0 on success, or a negative error code on failure.
  */
 int read_bitmap(
-    FILE *fp,
-    const struct ext2_super_block *sb,
+    FILE *file,
+    const struct ext2_super_block *superblock,
     uint32_t bitmap_block_id,
     uint8_t *bitmap_buffer
 );
@@ -28,15 +28,15 @@ int read_bitmap(
 /**
  * @brief Writes a bitmap from a buffer to a specified block on disk.
  *
- * @param fp Pointer to the filesystem image file.
- * @param sb Pointer to the superblock.
+ * @param file Pointer to the filesystem image file.
+ * @param superblock Pointer to the superblock.
  * @param bitmap_block_id The block ID where the bitmap should be written.
  * @param bitmap_buffer The buffer containing the bitmap data to write.
  * @return 0 on success, or a negative error code on failure.
  */
 int write_bitmap(
-    FILE *fp,
-    const struct ext2_super_block *sb,
+    FILE *file,
+    const struct ext2_super_block *superblock,
     uint32_t bitmap_block_id,
     const uint8_t *bitmap_buffer
 );
@@ -45,7 +45,7 @@ int write_bitmap(
  * @brief Finds the first free (zero) bit in a bitmap.
  *
  * @param bitmap_buffer The buffer containing the bitmap.
- * @param size_in_bits The total number of bits in the bitmap (e.g., sb->s_inodes_per_group).
+ * @param size_in_bits The total number of bits in the bitmap (e.g., superblock->s_inodes_per_group).
  * @param first_free_bit_index The found index of the first free bit
  * @return 0 on success, or a negative error code on failure
  */
