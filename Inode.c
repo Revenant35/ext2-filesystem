@@ -32,11 +32,11 @@ static int calculate_inode_disk_offset(
     off_t *offset_out
 ) {
     if (inode_num == 0 || inode_num > superblock->s_inodes_count) {
-        fprintf(stderr, "Error (calc_offset): Inode number %u must be within range [0, %u].\n", inode_num, superblock->s_inodes_count);
+        log_error("Error (calc_offset): Inode number %u must be within range [0, %u].\n", inode_num, superblock->s_inodes_count);
         return INVALID_PARAMETER; // Invalid inode number
     }
     if (inode_size == 0) {
-        fprintf(stderr, "Error (calc_offset): Superblock indicates inode_size is 0.\n");
+        log_error("Error (calc_offset): Superblock indicates inode_size is 0.\n");
         return -3; // Invalid inode size from superblock
     }
 
@@ -49,7 +49,7 @@ static int calculate_inode_disk_offset(
     // Check if block_group_num is valid (though s_inodes_count check should cover this)
     const uint32_t num_block_groups = (superblock->s_blocks_count + superblock->s_blocks_per_group - 1) / superblock->s_blocks_per_group;
     if (block_group_num >= num_block_groups) { // This check might be redundant if BLOCK_GROUP_DESCRIPTOR_TABLE is correctly sized
-        fprintf(stderr, "Error (calc_offset): Calculated block group %u is out of bounds.\n", block_group_num);
+        log_error("Error (calc_offset): Calculated block group %u is out of bounds.\n", block_group_num);
         return -4;
     }
 
@@ -82,7 +82,7 @@ int read_inode(
     ext2_inode *inode_out
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL || inode_out == NULL) {
-        fprintf(stderr, "Error (read_inode): NULL pointer argument provided.\n");
+        log_error("Error (read_inode): NULL pointer argument provided.\n");
         return INVALID_PARAMETER;
     }
 
@@ -98,7 +98,7 @@ int read_inode(
     if (on_disk_inode_size < sizeof(ext2_inode) && on_disk_inode_size != 0) {
         // This case is problematic, as we might read beyond the actual inode if on_disk_inode_size is too small
         // but not zero. However, standard ext2 usually has 128 or more.
-        fprintf(stderr, "Warning (read_inode): superblock->s_inode_size (%u) is less than sizeof(ext2_inode) (%zu).\n",
+        log_error("Warning (read_inode): superblock->s_inode_size (%u) is less than sizeof(ext2_inode) (%zu).\n",
                 on_disk_inode_size, sizeof(ext2_inode));
         // Proceeding to read sizeof(ext2_inode) might be incorrect here.
         // For safety, one might choose to read only on_disk_inode_size, but then inode_out would be partially filled.
@@ -108,12 +108,12 @@ int read_inode(
     off_t inode_disk_offset;
     const int calc_status = calculate_inode_disk_offset(superblock, block_group_descriptor_table, inode_num, on_disk_inode_size, &inode_disk_offset);
     if (calc_status != 0) {
-        fprintf(stderr, "Error (read_inode): Failed to calculate location for inode %u (status: %d).\n", inode_num, calc_status);
+        log_error("Error (read_inode): Failed to calculate location for inode %u (status: %d).\n", inode_num, calc_status);
         return -5; // Error in calculation, specific error code from calc_status might be more informative
     }
 
     if (fseeko(file, inode_disk_offset, SEEK_SET) != 0) {
-        perror("Error (read_inode): Seeking to inode location");
+        log_error("Error (read_inode): Seeking to inode location");
         return -6;
     }
 
@@ -121,9 +121,9 @@ int read_inode(
     // or that on_disk_inode_size >= sizeof(ext2_inode).
     if (fread(inode_out, sizeof(ext2_inode), 1, file) != 1) {
         if (feof(file)) {
-            fprintf(stderr, "Error (read_inode): Reading inode %u: unexpected end of file.\n", inode_num);
+            log_error("Error (read_inode): Reading inode %u: unexpected end of file.\n", inode_num);
         } else if (ferror(file)) {
-            perror("Error (read_inode): Reading inode");
+            log_error("Error (read_inode): Reading inode");
         }
         return -7;
     }
@@ -149,7 +149,7 @@ int write_inode(
     const ext2_inode *inode_in
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL || inode_in == NULL) {
-        fprintf(stderr, "Error (write_inode): NULL pointer argument provided.\n");
+        log_error("Error (write_inode): NULL pointer argument provided.\n");
         return INVALID_PARAMETER;
     }
 
@@ -161,20 +161,20 @@ int write_inode(
     off_t inode_disk_offset;
     const int calc_status = calculate_inode_disk_offset(superblock, block_group_descriptor_table, inode_num, on_disk_inode_size, &inode_disk_offset);
     if (calc_status != 0) {
-        fprintf(stderr, "Error (write_inode): Failed to calculate location for inode %u (status: %d).\n", inode_num, calc_status);
+        log_error("Error (write_inode): Failed to calculate location for inode %u (status: %d).\n", inode_num, calc_status);
         return -5;
     }
 
     if (fseeko(file, inode_disk_offset, SEEK_SET) != 0) {
-        perror("Error (write_inode): Seeking to inode location");
+        log_error("Error (write_inode): Seeking to inode location");
         return -6;
     }
 
     if (fwrite(inode_in, sizeof(ext2_inode), 1, file) != 1) {
         if (ferror(file)) {
-            perror("Error (write_inode): Writing inode");
+            log_error("Error (write_inode): Writing inode");
         } else {
-            fprintf(stderr, "Error (write_inode): Writing inode %u: fwrite did not write the expected number of items.\n", inode_num);
+            log_error("Error (write_inode): Writing inode %u: fwrite did not write the expected number of items.\n", inode_num);
         }
         return -7;
     }

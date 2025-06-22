@@ -13,7 +13,7 @@ void test_create_directory(const char *filesystem_image_path) {
     printf("\n--- Testing Directory Creation ---\n");
     FILE *file = fopen(filesystem_image_path, "r+");
     if (!file) {
-        perror("Failed to open filesystem image for writing");
+        log_error("Failed to open filesystem image for writing");
         return;
     }
 
@@ -34,7 +34,7 @@ void test_create_directory(const char *filesystem_image_path) {
     if (create_directory(file, &superblock, block_group_descriptor_table, EXT2_ROOT_INO, "new_dir", &new_inode) == 0) {
         printf("Successfully created '/new_dir' with inode %u\n", new_inode);
     } else {
-        fprintf(stderr, "Failed to create directory.\n");
+        log_error("Failed to create directory.\n");
     }
 
     printf("\n--- Listing Root Directory After Creation ---\n");
@@ -50,20 +50,20 @@ void list_root_directory(const char *filesystem_image_path) {
 
     FILE *file = fopen(filesystem_image_path, "rb");
     if (file == NULL) {
-        perror("Error opening filesystem image for root directory listing");
+        log_error("Error opening filesystem image for root directory listing");
         return;
     }
 
     ext2_super_block superblock;
     if (read_superblock(file, &superblock) != 0) {
-        fprintf(stderr, "Failed to read superblock for root directory listing.\n");
+        log_error("Failed to read superblock for root directory listing.\n");
         fclose(file);
         return;
     }
 
     const auto block_group_descriptor_table = read_all_group_descriptors(file, &superblock);
     if (block_group_descriptor_table == NULL) {
-        fprintf(stderr, "Failed to read block group descriptors for root directory listing.\n");
+        log_error("Failed to read block group descriptors for root directory listing.\n");
         fclose(file);
         return;
     }
@@ -74,19 +74,19 @@ void list_root_directory(const char *filesystem_image_path) {
     // Assuming Inode.h might have it or it's a common understanding.
     const int list_status = list_directory_entries(file, &superblock, block_group_descriptor_table->groups, EXT2_ROOT_INO);
     if (list_status != 0) {
-        fprintf(stderr, "Failed to list root directory entries. Error code: %d\n", list_status);
+        log_error("Failed to list root directory entries. Error code: %d\n", list_status);
     }
 
     free(block_group_descriptor_table);
     if (fclose(file) != 0) {
-        perror("Error closing filesystem image after listing root directory");
+        log_error("Error closing filesystem image after listing root directory");
     }
     printf("--- Root directory listing complete. ---\n");
 }
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <ext2_image_file>\n", argv[0]);
+        log_error("Usage: %s <ext2_image_file>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
     printf("Attempting to open: %s\n", filename);
     FILE *fp_orig_img = fopen(filename, "rb"); // Renamed to avoid confusion later
     if (fp_orig_img == NULL) {
-        perror("Error opening file");
+        log_error("Error opening file");
         return EXIT_FAILURE;
     }
 
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
     int read_status = read_superblock(fp_orig_img, &superblock);
 
     if (read_status != 0) {
-        fprintf(stderr, "Failed to successfully process superblock from %s. Error code: %d\n", filename, read_status);
+        log_error("Failed to successfully process superblock from %s. Error code: %d\n", filename, read_status);
         return EXIT_FAILURE;
     }
 
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
     printf("Attempting to open output file: %s (mode wb+)\n", output_filename);
     FILE *fp_out = fopen(output_filename, "wb+");
     if (fp_out == NULL) {
-        perror("Error opening output file for write test");
+        log_error("Error opening output file for write test");
         return EXIT_FAILURE; // Critical error, cannot proceed with write test
     }
 
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
     printf("Attempting to write superblock to %s\n", output_filename);
     int write_status = write_superblock(fp_out, &superblock);
     if (write_status != 0) {
-        fprintf(stderr, "Failed to write superblock to %s. Error code: %d\n", output_filename, write_status);
+        log_error("Failed to write superblock to %s. Error code: %d\n", output_filename, write_status);
         // Still need to close fp_out before exiting
     } else {
         printf("Superblock written successfully to %s.\n", output_filename);
@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
         // read_superblock will fseek from the beginning, so no explicit rewind needed after write
         read_back_status = read_superblock(fp_out, &superblock_read_back);
         if (read_back_status != 0) {
-            fprintf(stderr, "Failed to read back superblock from %s. Error code: %d\n", output_filename, read_back_status);
+            log_error("Failed to read back superblock from %s. Error code: %d\n", output_filename, read_back_status);
         } else {
             printf("Superblock read back successfully from %s.\n", output_filename);
 
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
             if (memcmp(&superblock, &superblock_read_back, sizeof(ext2_super_block)) == 0) {
                 printf("SUCCESS: Original superblock and read-back superblock are identical.\n");
             } else {
-                fprintf(stderr, "FAILURE: Original superblock and read-back superblock differ!\n");
+                log_error("FAILURE: Original superblock and read-back superblock differ!\n");
                 // Optionally, print details of differences here for debugging
             }
         }
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
 
     // Close the output file
     if (fclose(fp_out) != 0) {
-        perror("Error closing output file");
+        log_error("Error closing output file");
         // If other operations were successful, this still makes the overall test a failure.
         if (write_status == 0 && read_back_status == 0) {
             return EXIT_FAILURE;
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
 
     // Determine final exit status based on test outcomes
     if (write_status != 0 || read_back_status != 0 || memcmp(&superblock, &superblock_read_back, sizeof(ext2_super_block)) != 0) {
-        fprintf(stderr, "--- write_superblock test FAILED. ---\n");
+        log_error("--- write_superblock test FAILED. ---\n");
         return EXIT_FAILURE;
     }
     printf("--- write_superblock test completed successfully. ---\n");
@@ -217,14 +217,14 @@ int main(int argc, char *argv[]) {
 
     // Close the original image file pointer AFTER we are done with all reads from it
     if (fclose(fp_orig_img) != 0) {
-        perror("Error closing original image file");
+        log_error("Error closing original image file");
         // Decide if this should be a fatal error for the rest of the program flow
         if (block_group_descriptor_table != NULL) free(block_group_descriptor_table); // Clean up if BLOCK_GROUP_DESCRIPTOR_TABLE was read before close error
         return EXIT_FAILURE; 
     }
 
     if (block_group_descriptor_table == NULL) {
-        fprintf(stderr, "Failed to read block group descriptors.\n");
+        log_error("Failed to read block group descriptors.\n");
         return EXIT_FAILURE;
     }
 

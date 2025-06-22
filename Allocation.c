@@ -33,14 +33,14 @@ int allocate_inode(
             const uint32_t inode_bitmap_block_id = block_group_descriptor_table->groups[group_idx].bg_inode_bitmap;
 
             if (read_bitmap(file, superblock, inode_bitmap_block_id, bitmap_buffer) != 0) {
-                fprintf(stderr, "Failed to read inode bitmap for group %u\n", group_idx);
+                log_error("Failed to read inode bitmap for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return -3;
             }
 
             uint32_t free_bit_idx = 0;
             if (find_first_free_bit(bitmap_buffer, superblock->s_inodes_per_group, &free_bit_idx) != SUCCESS) {
-                fprintf(stderr, "Failed to find a free block.");
+                log_error("Failed to find a free block.");
                 return ERROR;
             }
 
@@ -50,7 +50,7 @@ int allocate_inode(
 
                 // Write bitmap back to disk
                 if (write_bitmap(file, superblock, inode_bitmap_block_id, bitmap_buffer) != 0) {
-                    fprintf(stderr, "Failed to write updated inode bitmap for group %u\n", group_idx);
+                    log_error("Failed to write updated inode bitmap for group %u\n", group_idx);
                     free(bitmap_buffer);
                     return -4;
                 }
@@ -61,13 +61,13 @@ int allocate_inode(
 
                 // Write updated group descriptor and superblock back to disk
                 if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != 0) {
-                    fprintf(stderr, "Failed to write updated group descriptor for group %u\n", group_idx);
+                    log_error("Failed to write updated group descriptor for group %u\n", group_idx);
                     // Attempt to revert changes? For now, just report error.
                     free(bitmap_buffer);
                     return -5;
                 }
                 if (write_superblock(file, superblock) != 0) {
-                    fprintf(stderr, "Failed to write updated superblock\n");
+                    log_error("Failed to write updated superblock\n");
                     free(bitmap_buffer);
                     return -6;
                 }
@@ -80,7 +80,7 @@ int allocate_inode(
     }
 
     free(bitmap_buffer);
-    fprintf(stderr, "No free inodes found in any block group.\n");
+    log_error("No free inodes found in any block group.\n");
     return -7; // No free inodes found
 }
 
@@ -105,14 +105,14 @@ int allocate_block(
             const uint32_t block_bitmap_block_id = block_group_descriptor_table->groups[group_idx].bg_block_bitmap;
 
             if (read_bitmap(file, superblock, block_bitmap_block_id, bitmap_buffer) != 0) {
-                fprintf(stderr, "Failed to read block bitmap for group %u\n", group_idx);
+                log_error("Failed to read block bitmap for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return -3;
             }
 
             uint32_t free_bit_idx = 0;
             if (find_first_free_bit(bitmap_buffer, superblock->s_inodes_per_group, &free_bit_idx) != SUCCESS) {
-                fprintf(stderr, "Failed to find a free block.");
+                log_error("Failed to find a free block.");
                 return ERROR;
             }
 
@@ -121,7 +121,7 @@ int allocate_block(
 
             // Write bitmap back to disk
             if (write_bitmap(file, superblock, block_bitmap_block_id, bitmap_buffer) != 0) {
-                fprintf(stderr, "Failed to write updated block bitmap for group %u\n", group_idx);
+                log_error("Failed to write updated block bitmap for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return -4;
             }
@@ -132,12 +132,12 @@ int allocate_block(
 
             // Write updated group descriptor and superblock back to disk
             if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != 0) {
-                fprintf(stderr, "Failed to write updated group descriptor for group %u\n", group_idx);
+                log_error("Failed to write updated group descriptor for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return -5;
             }
             if (write_superblock(file, superblock) != 0) {
-                fprintf(stderr, "Failed to write updated superblock\n");
+                log_error("Failed to write updated superblock\n");
                 free(bitmap_buffer);
                 return -6;
             }
@@ -150,6 +150,6 @@ int allocate_block(
     }
 
     free(bitmap_buffer);
-    fprintf(stderr, "No free blocks found in any block group.\n");
+    log_error("No free blocks found in any block group.\n");
     return -7; // No free blocks found
 }

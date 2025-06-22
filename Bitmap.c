@@ -19,12 +19,12 @@ int read_bitmap(
     const off_t offset = (off_t) bitmap_block_id * block_size;
 
     if (fseeko(file, offset, SEEK_SET) != 0) {
-        perror("read_bitmap: fseeko");
+        log_error("read_bitmap: fseeko");
         return IO_ERROR;
     }
 
     if (fread(bitmap_buffer, block_size, 1, file) != 1) {
-        perror("read_bitmap: fread");
+        log_error("read_bitmap: fread");
         return IO_ERROR;
     }
 
@@ -41,12 +41,12 @@ int write_bitmap(
     const off_t offset = (off_t) bitmap_block_id * block_size;
 
     if (fseeko(file, offset, SEEK_SET) != 0) {
-        perror("write_bitmap: fseeko");
+        log_error("write_bitmap: fseeko");
         return IO_ERROR;
     }
 
     if (fwrite(bitmap_buffer, block_size, 1, file) != 1) {
-        perror("write_bitmap: fwrite");
+        log_error("write_bitmap: fwrite");
         return IO_ERROR;
     }
 

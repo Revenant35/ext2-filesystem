@@ -10,5 +10,6 @@
 #define IO_ERROR -2
 #define ERROR -3
 
+#define log_error(fmt, ...) fprintf(stderr, fmt "\n", ##__VA_ARGS__)
 
 #endif //GLOBALS_H

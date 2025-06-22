@@ -45,20 +45,20 @@ int list_directory_entries(
     const uint32_t dir_inode_num
 ) {
     if (file == NULL || superblock == NULL || block_group_descriptor_table == NULL) {
-        fprintf(stderr, "Error (list_directory): NULL pointer argument provided.\n");
+        log_error("Error (list_directory): NULL pointer argument provided.\n");
         return INVALID_PARAMETER;
     }
 
     ext2_inode dir_inode;
     if (read_inode(file, superblock, block_group_descriptor_table, dir_inode_num, &dir_inode) != 0) {
-        fprintf(stderr, "Error (list_directory): Failed to read inode %u.\n", dir_inode_num);
+        log_error("Error (list_directory): Failed to read inode %u.\n", dir_inode_num);
         return -2;
     }
 
     // Check if it's a directory (S_IFDIR is 0x4000)
     if ((dir_inode.i_mode & 0xF000) != 0x4000) {
         // S_IFMT is 0xF000, S_IFDIR is 0x4000
-        fprintf(stderr, "Error (list_directory): Inode %u is not a directory (mode: %04X).\n", dir_inode_num,
+        log_error("Error (list_directory): Inode %u is not a directory (mode: %04X).\n", dir_inode_num,
                 dir_inode.i_mode);
         return -3;
     }
@@ -66,7 +66,7 @@ int list_directory_entries(
     const uint32_t block_size = get_block_size(superblock);
     const auto block_buffer = (char *) malloc(block_size);
     if (block_buffer == NULL) {
-        fprintf(stderr, "Error (list_directory): Failed to allocate memory for block buffer.\n");
+        log_error("Error (list_directory): Failed to allocate memory for block buffer.\n");
         return -4;
     }
 
@@ -86,17 +86,17 @@ int list_directory_entries(
         const off_t block_offset = (off_t) data_block_id * block_size;
 
         if (fseeko(file, block_offset, SEEK_SET) != 0) {
-            perror("Error (list_directory): Seeking to data block");
+            log_error("Error (list_directory): Seeking to data block");
             free(block_buffer);
             return -5;
         }
 
         if (fread(block_buffer, block_size, 1, file) != 1) {
             if (feof(file)) {
-                fprintf(stderr, "Error (list_directory): Reading data block %u: unexpected end of file.\n",
+                log_error("Error (list_directory): Reading data block %u: unexpected end of file.\n",
                         data_block_id);
             } else if (ferror(file)) {
-                perror("Error (list_directory): Reading data block");
+                log_error("Error (list_directory): Reading data block");
             }
             free(block_buffer);
             return -6;
@@ -115,8 +115,7 @@ int list_directory_entries(
 
             if (entry->rec_len == 0) {
                 // Invalid entry, stop processing this block
-                fprintf(
-                    stderr,
+                log_error(
                     "Warning (list_directory): Encountered directory entry with rec_len=0 in block %u. Stopping parse of this block.\n",
                     data_block_id);
                 break;
