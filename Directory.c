@@ -52,7 +52,7 @@ int list_directory_entries(
     ext2_inode dir_inode;
     if (read_inode(file, superblock, block_group_descriptor_table, dir_inode_num, &dir_inode) != 0) {
         log_error("Error (list_directory): Failed to read inode %u.\n", dir_inode_num);
-        return -2;
+        return ERROR;
     }
 
     // Check if it's a directory (S_IFDIR is 0x4000)
@@ -60,14 +60,14 @@ int list_directory_entries(
         // S_IFMT is 0xF000, S_IFDIR is 0x4000
         log_error("Error (list_directory): Inode %u is not a directory (mode: %04X).\n", dir_inode_num,
                 dir_inode.i_mode);
-        return -3;
+        return ERROR;
     }
 
     const uint32_t block_size = get_block_size(superblock);
     const auto block_buffer = (char *) malloc(block_size);
     if (block_buffer == NULL) {
         log_error("Error (list_directory): Failed to allocate memory for block buffer.\n");
-        return -4;
+        return ERROR;
     }
 
     printf("Directory listing for inode %u:\n", dir_inode_num);
@@ -266,12 +266,12 @@ int create_directory(
     }
 
     uint32_t new_inode_num;
-    if (allocate_inode(file, superblock, block_group_descriptor_table, &new_inode_num) != 0) {
+    if (allocate_inode(file, superblock, block_group_descriptor_table, &new_inode_num) != SUCCESS) {
         return -2; // Failed to allocate inode
     }
 
     uint32_t new_block_num;
-    if (allocate_block(file, superblock, block_group_descriptor_table, &new_block_num) != 0) {
+    if (allocate_block(file, superblock, block_group_descriptor_table, &new_block_num) != SUCCESS) {
         // TODO: Deallocate inode
         return -3; // Failed to allocate block
     }
