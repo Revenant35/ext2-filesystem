@@ -37,32 +37,43 @@ static uint32_t count_block_groups_by_blocks(
     return (superblock->s_blocks_count + superblock->s_blocks_per_group - 1) / superblock->s_blocks_per_group;
 }
 
-off_t get_table_offset(
+/**
+ * @brief Calculates the starting byte offset of the Block Group Descriptor Table (BGDT).
+ *
+ * The BGDT starts on the block immediately following the superblock.
+ * If the block size is 1024 bytes, the superblock occupies block 1, so BGDT starts at block 2.
+ * If the block size is > 1024 bytes, the superblock is in block 0, so BGDT starts at block 1.
+ *
+ * @param superblock Pointer to the superblock structure.
+ * @return The starting byte offset of the BGDT from the beginning of the filesystem.
+ */
+static off_t get_table_offset(
     const ext2_super_block *superblock
 ) {
-    if (superblock == NULL) {
-        return SUCCESS;
-    }
     const uint32_t block_size = get_block_size(superblock);
     return (off_t) block_size * (block_size == 1024 ? 2 : 1);
 }
 
-off_t get_descriptor_offset(
+/**
+ * @brief Calculates the byte offset of a specific block group descriptor within the BGDT.
+ * @param superblock Pointer to the superblock structure.
+ * @param group_index The 0-based index of the target block group.
+ * @return The byte offset of the specified group descriptor from the beginning of the filesystem.
+ */
+static off_t get_descriptor_offset(
     const ext2_super_block *superblock,
     const uint64_t group_index
 ) {
-    if (superblock == NULL) {
-        return SUCCESS;
-    }
     return (off_t) group_index * sizeof(ext2_group_desc) + get_table_offset(superblock);
 }
 
-uint32_t get_num_block_groups(
+uint32_t count_block_groups(
     const ext2_super_block *superblock
 ) {
     if (superblock == NULL) {
         return SUCCESS;
     }
+
     const uint32_t num_block_groups_by_blocks = count_block_groups_by_blocks(superblock);
     const uint32_t num_block_groups_by_inodes = count_block_groups_by_inodes(superblock);
 
@@ -129,7 +140,7 @@ int write_group_descriptor(
 
     if (fseeko(file, offset, SEEK_SET) != 0) {
         log_error("Error (write_single_group_descriptor): Seeking to group descriptor offset");
-        return -2;
+        return ERROR;
     }
 
     if (fwrite(group_desc, sizeof(ext2_group_desc), 1, file) != 1) {
@@ -138,7 +149,7 @@ int write_group_descriptor(
         } else {
             log_error("Error (write_single_group_descriptor): fwrite did not write the expected number of items.\n");
         }
-        return -3;
+        return ERROR;
     }
 
     return SUCCESS;
@@ -153,7 +164,7 @@ ext2_group_desc_table *read_group_descriptor_table(
         return nullptr;
     }
 
-    const uint32_t num_groups = get_num_block_groups(superblock);
+    const uint32_t num_groups = count_block_groups(superblock);
     if (num_groups == 0) {
         log_error("Error: Filesystem has 0 block groups according to superblock.\n");
         return nullptr;

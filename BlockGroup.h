@@ -46,32 +46,6 @@ typedef struct {
 #define EXT2_BG_BLOCK_UNINIT    0x0002  // Block bitmap is not initialized
 #define EXT2_BG_INODE_ZEROED    0x0004  // Inode table is zeroed
 
-
-/**
- * @brief Calculates the starting byte offset of the Block Group Descriptor Table (BGDT).
- *
- * The BGDT starts on the block immediately following the superblock.
- * If the block size is 1024 bytes, the superblock occupies block 1, so BGDT starts at block 2.
- * If the block size is > 1024 bytes, the superblock is in block 0, so BGDT starts at block 1.
- *
- * @param superblock Pointer to the superblock structure.
- * @return The starting byte offset of the BGDT from the beginning of the filesystem.
- */
-off_t get_table_offset(
-    const ext2_super_block *superblock
-);
-
-/**
- * @brief Calculates the byte offset of a specific block group descriptor within the BGDT.
- * @param superblock Pointer to the superblock structure.
- * @param group_index The 0-based index of the target block group.
- * @return The byte offset of the specified group descriptor from the beginning of the filesystem.
- */
-off_t get_descriptor_offset(
-    const ext2_super_block *superblock,
-    uint64_t group_index
-);
-
 /**
  * @brief Calculates the total number of block groups in the filesystem.
  *
@@ -83,7 +57,7 @@ off_t get_descriptor_offset(
  * @param superblock Pointer to the superblock structure.
  * @return The total number of block groups.
  */
-uint32_t get_num_block_groups(
+uint32_t count_block_groups(
     const ext2_super_block *superblock
 );
 

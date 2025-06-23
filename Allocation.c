@@ -35,7 +35,7 @@ int allocate_inode(
             if (read_bitmap(file, superblock, inode_bitmap_block_id, bitmap_buffer) != SUCCESS) {
                 log_error("Failed to read inode bitmap for group %u\n", group_idx);
                 free(bitmap_buffer);
-                return -3;
+                return ERROR;
             }
 
             uint32_t free_bit_idx = 0;
