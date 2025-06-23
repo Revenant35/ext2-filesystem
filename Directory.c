@@ -6,8 +6,7 @@
 #include "Directory.h"
 #include "Inode.h"
 #include "BlockGroup.h"
-#include "Allocation.h"
-#include "Superblock.h"
+#include "Bitmap.h"
 #include "globals.h"
 
 #include <stdio.h>
@@ -15,6 +14,8 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "Allocation.h"
 
 // Define for the number of direct blocks in an inode, typically 12
 #define EXT2_NDIR_BLOCKS 12
@@ -251,6 +252,101 @@ int add_directory_entry(
 
     free(block_buffer);
     return SUCCESS;
+}
+
+// Helper function to find an entry in a single directory.
+uint32_t find_entry_in_directory(FILE *file, const ext2_super_block *superblock, const ext2_group_desc *bgdt, uint32_t dir_inode_num, const char *entry_name) {
+    ext2_inode dir_inode;
+    if (read_inode(file, superblock, bgdt, dir_inode_num, &dir_inode) != 0) {
+        log_error("find_entry: Failed to read directory inode %u", dir_inode_num);
+        return 0;
+    }
+
+    // Use the macros from Inode.h to check if it's a directory
+    if ((dir_inode.i_mode & EXT2_S_IFMT) != EXT2_S_IFDIR) {
+        log_error("find_entry: Inode %u is not a directory.", dir_inode_num);
+        return 0;
+    }
+
+    const uint32_t block_size = get_block_size(superblock);
+    char *block_buffer = (char *)malloc(block_size);
+    if (!block_buffer) {
+        log_error("find_entry: Failed to allocate memory for a data block.");
+        return 0;
+    }
+
+    // Iterate over direct blocks for now
+    for (int i = 0; i < EXT2_NDIR_BLOCKS; ++i) {
+        if (dir_inode.i_block[i] == 0) {
+            continue;
+        }
+
+        const uint32_t data_block_id = dir_inode.i_block[i];
+        const off_t block_offset = (off_t)data_block_id * block_size;
+
+        if (fseeko(file, block_offset, SEEK_SET) != 0) {
+            log_error("find_entry: Seeking to data block %u failed.", data_block_id);
+            continue;
+        }
+
+        if (fread(block_buffer, block_size, 1, file) != 1) {
+            log_error("find_entry: Reading data block %u failed.", data_block_id);
+            continue;
+        }
+
+        char *current_pos = block_buffer;
+        const char *limit = block_buffer + block_size;
+
+        while (current_pos < limit) {
+            ext2_directory_entry *entry = (ext2_directory_entry *)current_pos;
+            if (entry->rec_len == 0) {
+                log_error("find_entry: Invalid rec_len=0 found in block %u.", data_block_id);
+                break;
+            }
+
+            // Check if inode is valid and name matches
+            if (entry->inode != 0 && entry->name_len == strlen(entry_name) && strncmp(entry_name, entry->name, entry->name_len) == 0) {
+                uint32_t found_inode = entry->inode;
+                free(block_buffer);
+                return found_inode;
+            }
+            current_pos += entry->rec_len;
+        }
+    }
+
+    free(block_buffer);
+    return 0; // Entry not found
+}
+
+// Public function to resolve a full path
+uint32_t get_inode_for_path(FILE *file, const ext2_super_block *superblock, const ext2_group_desc *bgdt, const char *path) {
+    if (path == NULL) {
+        return 0;
+    }
+    if (strcmp(path, "/") == 0) {
+        return EXT2_ROOT_INO;
+    }
+
+    uint32_t current_inode = EXT2_ROOT_INO;
+    char *path_copy = strdup(path);
+    if (!path_copy) {
+        log_error("get_inode_for_path: Failed to allocate memory for path copy");
+        return 0;
+    }
+
+    // If path starts with '/', strtok will handle it correctly.
+    char *token = strtok(path_copy, "/");
+    while (token != NULL) {
+        current_inode = find_entry_in_directory(file, superblock, bgdt, current_inode, token);
+        if (current_inode == 0) {
+            // Path component not found, log is handled in find_entry_in_directory
+            break;
+        }
+        token = strtok(NULL, "/");
+    }
+
+    free(path_copy);
+    return current_inode;
 }
 
 int create_directory(

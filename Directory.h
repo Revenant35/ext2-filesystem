@@ -106,4 +106,23 @@ int add_directory_entry(
     uint8_t new_entry_type
 );
 
+/**
+ * @brief Resolves a path to an inode number.
+ *
+ * Traverses the directory tree starting from the root to find the inode
+ * corresponding to the given path.
+ *
+ * @param file Pointer to the filesystem image file.
+ * @param superblock Pointer to the superblock.
+ * @param block_group_descriptor_table Pointer to the block group descriptor table.
+ * @param path The absolute path to resolve.
+ * @return The inode number on success, or 0 if the path is not found or an error occurs.
+ */
+uint32_t get_inode_for_path(
+    FILE *file,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *block_group_descriptor_table,
+    const char *path
+);
+
 #endif //DIRECTORY_H
