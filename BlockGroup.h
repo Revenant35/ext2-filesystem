@@ -93,14 +93,12 @@ uint32_t get_num_block_groups(
  * @param file Pointer to an open FILE stream for the filesystem image.
  * @param superblock Pointer to the filesystem's superblock (already read into memory).
  * @param group_index The index of the block group descriptor to read (0-based).
- * @param group_desc_out Pointer to an `ext2_group_desc` structure to populate with the read data.
- * @return 0 on success, or a negative error code on failure.
+ * @return Pointer to an `ext2_group_desc` structure containing the data read from the filesystem,
  */
-int read_single_group_descriptor(
+ext2_group_desc *read_group_descriptor(
     FILE *file,
     const ext2_super_block *superblock,
-    uint32_t group_index,
-    ext2_group_desc *group_desc_out
+    uint32_t group_index
 );
 
 /**
@@ -109,14 +107,14 @@ int read_single_group_descriptor(
  * @param file Pointer to an open FILE stream for the filesystem image.
  * @param superblock Pointer to the filesystem's superblock.
  * @param group_index The 0-based index of the block group descriptor to write.
- * @param group_desc_in Pointer to an `ext2_group_desc` structure containing the data to write.
+ * @param group_desc Pointer to an `ext2_group_desc` structure containing the data to write.
  * @return 0 on success, or a negative error code on failure.
  */
-int write_single_group_descriptor(
+int write_group_descriptor(
     FILE *file,
     const ext2_super_block *superblock,
     uint32_t group_index,
-    const ext2_group_desc *group_desc_in
+    const ext2_group_desc *group_desc
 );
 
 /**
@@ -131,7 +129,7 @@ int write_single_group_descriptor(
  * @return Pointer to an array of `ext2_group_desc` structures (the BLOCK_GROUP_DESCRIPTOR_TABLE), or NULL on failure.
  *         If NULL is returned, `num_groups_read_out` will be set to 0.
  */
-ext2_group_desc_table *read_all_group_descriptors(
+ext2_group_desc_table *read_group_descriptor_table(
     FILE *file,
     const ext2_super_block *superblock
 );

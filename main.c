@@ -23,7 +23,7 @@ void test_create_directory(const char *filesystem_image_path) {
         return;
     }
 
-    const auto block_group_descriptor_table = read_all_group_descriptors(file, superblock);
+    const auto block_group_descriptor_table = read_group_descriptor_table(file, superblock);
     if (!block_group_descriptor_table) {
         fclose(file);
         return;
@@ -61,7 +61,7 @@ void list_root_directory(const char *filesystem_image_path) {
         return;
     }
 
-    const auto block_group_descriptor_table = read_all_group_descriptors(file, superblock);
+    const auto block_group_descriptor_table = read_group_descriptor_table(file, superblock);
     if (block_group_descriptor_table == NULL) {
         log_error("Failed to read block group descriptors for root directory listing.\n");
         fclose(file);
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
 
     // --- Read and print Block Group Descriptors ---
     printf("\n--- Reading Block Group Descriptors ---\n");
-    auto block_group_descriptor_table = read_all_group_descriptors(fp_orig_img, superblock);
+    auto block_group_descriptor_table = read_group_descriptor_table(fp_orig_img, superblock);
 
     // Close the original image file pointer AFTER we are done with all reads from it
     if (fclose(fp_orig_img) != 0) {

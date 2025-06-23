@@ -76,48 +76,52 @@ uint32_t get_num_block_groups(
     return num_block_groups_by_blocks;
 }
 
-int read_single_group_descriptor(
+ext2_group_desc *read_group_descriptor(
     FILE *file,
     const ext2_super_block *superblock,
-    const uint32_t group_index,
-    ext2_group_desc *group_desc_out
+    const uint32_t group_index
 ) {
-    if (file == NULL || superblock == NULL || group_desc_out == NULL) {
+    if (file == NULL || superblock == NULL) {
         log_error("Error: NULL pointer passed to read_single_group_descriptor.\n");
-        return INVALID_PARAMETER;
+        return nullptr;
     }
 
     const off_t descriptor_offset = get_descriptor_offset(superblock, group_index);
 
     if (fseeko(file, descriptor_offset, SEEK_SET) != 0) {
         log_error("Error seeking to group descriptor");
-        return -2;
+        return nullptr;
     }
 
-    if (fread(group_desc_out, sizeof(ext2_group_desc), 1, file) != 1) {
+    ext2_group_desc *group_desc = malloc(sizeof(ext2_group_desc));
+
+    if (fread(group_desc, sizeof(ext2_group_desc), 1, file) != 1) {
         if (feof(file)) {
             log_error("Error reading group descriptor: unexpected end of file for group %u.\n", group_index);
-            return -3;
+            free(group_desc);
+            return nullptr;
         }
 
         if (ferror(file)) {
             log_error("Error reading group descriptor");
-            return -3;
+            free(group_desc);
+            return nullptr;
         }
 
-        return -3;
+        free(group_desc);
+        return nullptr;
     }
 
     return SUCCESS;
 }
 
-int write_single_group_descriptor(
+int write_group_descriptor(
     FILE *file,
     const ext2_super_block *superblock,
     const uint32_t group_index,
-    const ext2_group_desc *group_desc_in
+    const ext2_group_desc *group_desc
 ) {
-    if (file == NULL || superblock == NULL || group_desc_in == NULL) {
+    if (file == NULL || superblock == NULL || group_desc == NULL) {
         return INVALID_PARAMETER;
     }
 
@@ -128,7 +132,7 @@ int write_single_group_descriptor(
         return -2;
     }
 
-    if (fwrite(group_desc_in, sizeof(ext2_group_desc), 1, file) != 1) {
+    if (fwrite(group_desc, sizeof(ext2_group_desc), 1, file) != 1) {
         if (ferror(file)) {
             log_error("Error (write_single_group_descriptor): Writing group descriptor");
         } else {
@@ -140,7 +144,7 @@ int write_single_group_descriptor(
     return SUCCESS;
 }
 
-ext2_group_desc_table *read_all_group_descriptors(
+ext2_group_desc_table *read_group_descriptor_table(
     FILE *file,
     const ext2_super_block *superblock
 ) {

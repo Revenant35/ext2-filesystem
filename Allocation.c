@@ -55,7 +55,7 @@ int allocate_inode(
             block_group_descriptor_table->groups[group_idx].bg_free_inodes_count--;
             superblock->s_free_inodes_count--;
 
-            if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != SUCCESS) {
+            if (write_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != SUCCESS) {
                 log_error("Failed to write updated group descriptor for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return ERROR;
@@ -124,7 +124,7 @@ int allocate_block(
             superblock->s_free_blocks_count--;
 
             // Write updated group descriptor and superblock back to disk
-            if (write_single_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != 0) {
+            if (write_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != 0) {
                 log_error("Failed to write updated group descriptor for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return ERROR;
