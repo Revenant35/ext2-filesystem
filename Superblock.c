@@ -12,19 +12,20 @@
 #include "globals.h"
 
 
-int read_superblock(
-    FILE *file,
-    ext2_super_block *superblock
+ext2_super_block *read_superblock(
+    FILE *file
 ) {
     if (file == NULL) {
         log_error("Error: read_superblock received a NULL file pointer.\n");
-        return INVALID_PARAMETER;
+        return nullptr;
     }
 
     if (fseek(file, EXT2_SUPERBLOCK_OFFSET, SEEK_SET) != 0) {
         log_error("Error seeking to superblock");
-        return 2;
+        return nullptr;
     }
+
+    ext2_super_block *superblock = malloc(sizeof(ext2_super_block));
 
     if (fread(superblock, sizeof(ext2_super_block), 1, file) != 1) {
         if (feof(file)) {
@@ -32,16 +33,18 @@ int read_superblock(
         } else if (ferror(file)) {
             log_error("Error reading superblock");
         }
-        return 3;
+        free(superblock);
+        return nullptr;
     }
 
     if (superblock->s_magic != EXT2_SUPER_MAGIC) {
         log_error("Error: Not an ext2 filesystem (magic number mismatch: expected 0x%X, got 0x%X)\n",
                 EXT2_SUPER_MAGIC, superblock->s_magic);
-        return 4;
+        free(superblock);
+        return nullptr;
     }
 
-    return SUCCESS;
+    return superblock;
 }
 
 int write_superblock(
@@ -57,12 +60,12 @@ int write_superblock(
         log_error(
             "Error: write_superblock attempted to write an invalid superblock (magic number mismatch: expected 0x%X, got 0x%X).\n",
             EXT2_SUPER_MAGIC, superblock->s_magic);
-        return 3;
+        return ERROR;
     }
 
     if (fseek(file, EXT2_SUPERBLOCK_OFFSET, SEEK_SET) != 0) {
         log_error("Error seeking to superblock for writing");
-        return 4;
+        return ERROR;
     }
 
     if (fwrite(superblock, sizeof(ext2_super_block), 1, file) != 1) {

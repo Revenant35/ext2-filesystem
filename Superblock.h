@@ -155,12 +155,10 @@ typedef struct {
 /**
  * @brief Reads the superblock from an open file stream into memory.
  * @param file Pointer to an open FILE stream (e.g., from an ext2 image file).
- * @param superblock Pointer to an ext2_super_block structure to populate.
- * @return 0 on success, non-zero on failure (e.g., I/O error, magic number mismatch).
+ * @return Pointer to an ext2_super_block structure containing the superblock data,
  */
-int read_superblock(
-    FILE *file,
-    ext2_super_block *superblock
+ext2_super_block *read_superblock(
+    FILE *file
 );
 
 /**
