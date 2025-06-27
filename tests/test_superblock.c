@@ -8,13 +8,13 @@
 static ext2_super_block *sb;
 
 // Helper to create a temporary file with a given size and content
-static FILE *create_temp_file(const char *data, size_t size) {
+static FILE *create_temp_file(const char *data, const size_t size) {
     FILE *fp = tmpfile();
     if (fp == NULL) {
         return NULL;
     }
-    if (data != NULL && size > 0) {
-        fwrite(data, 1, size, fp);
+    if (data != NULL) {
+        fwrite(data, size, 1, fp);
     }
     rewind(fp);
     return fp;
@@ -23,7 +23,6 @@ static FILE *create_temp_file(const char *data, size_t size) {
 void setup(void) {
     sb = malloc(sizeof(ext2_super_block));
     ck_assert_ptr_nonnull(sb);
-    // Initialize with some default valid values
     sb->s_magic = EXT2_SUPER_MAGIC;
     sb->s_log_block_size = 0; // 1024 bytes
     sb->s_log_frag_size = 0;  // 1024 bytes
@@ -36,179 +35,238 @@ void teardown(void) {
     sb = NULL;
 }
 
-START_TEST(test_get_block_size_valid)
+START_TEST(get_block_size_should_return_correct_size_when_log_block_size_is_valid)
 {
-    sb->s_log_block_size = 0; // 1024 << 0 = 1024
-    ck_assert_uint_eq(get_block_size(sb), 1024);
-
+    // Arrange
     sb->s_log_block_size = 1; // 1024 << 1 = 2048
-    ck_assert_uint_eq(get_block_size(sb), 2048);
 
-    sb->s_log_block_size = 2; // 1024 << 2 = 4096
-    ck_assert_uint_eq(get_block_size(sb), 4096);
+    // Act
+    const uint32_t block_size = get_block_size(sb);
+
+    // Assert
+    ck_assert_uint_eq(block_size, 2048);
 }
 END_TEST
 
-START_TEST(test_get_block_size_null)
+START_TEST(get_block_size_should_return_zero_when_superblock_is_null)
 {
-    ck_assert_uint_eq(get_block_size(NULL), 0);
+    // Act
+    const uint32_t block_size = get_block_size(NULL);
+
+    // Assert
+    ck_assert_uint_eq(block_size, 0);
 }
 END_TEST
 
-START_TEST(test_get_fragment_size_valid)
+START_TEST(get_fragment_size_should_return_correct_size_when_log_frag_size_is_valid)
 {
-    sb->s_log_frag_size = 0; // 1024 << 0 = 1024
-    ck_assert_uint_eq(get_fragment_size(sb), 1024);
-
-    sb->s_log_frag_size = 1; // 1024 << 1 = 2048
-    ck_assert_uint_eq(get_fragment_size(sb), 2048);
-
+    // Arrange
     sb->s_log_frag_size = 2; // 1024 << 2 = 4096
-    ck_assert_uint_eq(get_fragment_size(sb), 4096);
+
+    // Act
+    const uint32_t frag_size = get_fragment_size(sb);
+
+    // Assert
+    ck_assert_uint_eq(frag_size, 4096);
 }
 END_TEST
 
-START_TEST(test_get_fragment_size_null)
+START_TEST(get_fragment_size_should_return_zero_when_superblock_is_null)
 {
-    ck_assert_uint_eq(get_fragment_size(NULL), 0);
+    // Arrange
+    // No arrangement needed
+
+    // Act
+    const uint32_t frag_size = get_fragment_size(NULL);
+
+    // Assert
+    ck_assert_uint_eq(frag_size, 0);
 }
 END_TEST
 
-START_TEST(test_get_block_group_count_valid)
+START_TEST(get_block_group_count_should_return_correct_count_when_division_is_exact)
 {
-    sb->s_blocks_count = 8192;
-    sb->s_blocks_per_group = 8192;
-    ck_assert_uint_eq(get_block_group_count(sb), 1);
-
-    sb->s_blocks_count = 8193;
-    sb->s_blocks_per_group = 8192;
-    ck_assert_uint_eq(get_block_group_count(sb), 2);
-
+    // Arrange
     sb->s_blocks_count = 16384;
     sb->s_blocks_per_group = 8192;
-    ck_assert_uint_eq(get_block_group_count(sb), 2);
 
-    sb->s_blocks_count = 1;
+    // Act
+    const uint32_t count = get_block_group_count(sb);
+
+    // Assert
+    ck_assert_uint_eq(count, 2);
+}
+END_TEST
+
+START_TEST(get_block_group_count_should_return_correct_count_when_division_has_remainder)
+{
+    // Arrange
+    sb->s_blocks_count = 16385;
     sb->s_blocks_per_group = 8192;
-    ck_assert_uint_eq(get_block_group_count(sb), 1);
+
+    // Act
+    const uint32_t count = get_block_group_count(sb);
+
+    // Assert
+    ck_assert_uint_eq(count, 3);
 }
 END_TEST
 
-START_TEST(test_get_block_group_count_zero_blocks_per_group)
+START_TEST(get_block_group_count_should_return_zero_when_blocks_per_group_is_zero)
 {
+    // Arrange
     sb->s_blocks_per_group = 0;
-    ck_assert_uint_eq(get_block_group_count(sb), 0);
+
+    // Act
+    const uint32_t count = get_block_group_count(sb);
+
+    // Assert
+    ck_assert_uint_eq(count, 0);
 }
 END_TEST
 
-START_TEST(test_get_block_group_count_null)
+START_TEST(get_block_group_count_should_return_zero_when_superblock_is_null)
 {
-    ck_assert_uint_eq(get_block_group_count(NULL), 0);
+    // Arrange
+    // No arrangement needed
+
+    // Act
+    const uint32_t count = get_block_group_count(NULL);
+
+    // Assert
+    ck_assert_uint_eq(count, 0);
 }
 END_TEST
 
-START_TEST(test_read_superblock_valid)
+START_TEST(read_superblock_should_return_superblock_when_file_is_valid)
 {
+    // Arrange
     char buffer[EXT2_SUPERBLOCK_OFFSET + sizeof(ext2_super_block)] = {0};
-    sb->s_inodes_count = 12345; // Set a unique value to check
+    sb->s_inodes_count = 54321;
     memcpy(buffer + EXT2_SUPERBLOCK_OFFSET, sb, sizeof(ext2_super_block));
-
     FILE *fs_image = create_temp_file(buffer, sizeof(buffer));
     ck_assert_ptr_nonnull(fs_image);
 
+    // Act
     ext2_super_block *read_sb = read_superblock(fs_image);
+
+    // Assert
     ck_assert_ptr_nonnull(read_sb);
     ck_assert_uint_eq(read_sb->s_magic, EXT2_SUPER_MAGIC);
-    ck_assert_uint_eq(read_sb->s_inodes_count, 12345);
+    ck_assert_uint_eq(read_sb->s_inodes_count, 54321);
 
+    // Cleanup
     free(read_sb);
     fclose(fs_image);
 }
 END_TEST
 
-START_TEST(test_read_superblock_null_file)
+START_TEST(read_superblock_should_return_null_when_file_is_null)
 {
-    ext2_super_block *read_sb = read_superblock(NULL);
+    // Arrange
+    // No arrangement needed
+
+    // Act
+    const ext2_super_block *read_sb = read_superblock(NULL);
+
+    // Assert
     ck_assert_ptr_null(read_sb);
 }
 END_TEST
 
-START_TEST(test_read_superblock_bad_magic)
+START_TEST(read_superblock_should_return_null_when_magic_is_invalid)
 {
+    // Arrange
     sb->s_magic = 0; // Invalid magic number
     char buffer[EXT2_SUPERBLOCK_OFFSET + sizeof(ext2_super_block)] = {0};
     memcpy(buffer + EXT2_SUPERBLOCK_OFFSET, sb, sizeof(ext2_super_block));
-
     FILE *fs_image = create_temp_file(buffer, sizeof(buffer));
     ck_assert_ptr_nonnull(fs_image);
 
-    ext2_super_block *read_sb = read_superblock(fs_image);
+    // Act
+    const ext2_super_block *read_sb = read_superblock(fs_image);
+
+    // Assert
     ck_assert_ptr_null(read_sb);
 
+    // Cleanup
     fclose(fs_image);
 }
 END_TEST
 
-START_TEST(test_read_superblock_short_file)
+START_TEST(read_superblock_should_return_null_when_file_is_too_short)
 {
-    // File is too short to contain a full superblock
+    // Arrange
     FILE *fs_image = create_temp_file("short", 5);
     ck_assert_ptr_nonnull(fs_image);
 
-    ext2_super_block *read_sb = read_superblock(fs_image);
+    // Act
+    const ext2_super_block *read_sb = read_superblock(fs_image);
+
+    // Assert
     ck_assert_ptr_null(read_sb);
 
+    // Cleanup
     fclose(fs_image);
 }
 END_TEST
 
-START_TEST(test_write_superblock_valid)
+START_TEST(write_superblock_should_return_success_when_superblock_is_valid)
 {
+    // Arrange
     FILE *fs_image = create_temp_file(NULL, 0);
     ck_assert_ptr_nonnull(fs_image);
 
-    int result = write_superblock(fs_image, sb);
-    ck_assert_int_eq(result, SUCCESS);
+    // Act
+    const int result = write_superblock(fs_image, sb);
 
-    // Read back and verify
+    // Assert
+    ck_assert_int_eq(result, SUCCESS);
     fseek(fs_image, EXT2_SUPERBLOCK_OFFSET, SEEK_SET);
     ext2_super_block *verify_sb = malloc(sizeof(ext2_super_block));
     fread(verify_sb, sizeof(ext2_super_block), 1, fs_image);
-
     ck_assert_uint_eq(verify_sb->s_magic, sb->s_magic);
     ck_assert_uint_eq(verify_sb->s_blocks_count, sb->s_blocks_count);
 
+    // Cleanup
     free(verify_sb);
     fclose(fs_image);
 }
 END_TEST
 
-START_TEST(test_write_superblock_null_args)
+START_TEST(write_superblock_should_return_invalid_parameter_when_args_are_null)
 {
+    // Arrange
     FILE *fs_image = create_temp_file(NULL, 0);
     ck_assert_ptr_nonnull(fs_image);
 
+    // Act & Assert
     ck_assert_int_eq(write_superblock(NULL, sb), INVALID_PARAMETER);
     ck_assert_int_eq(write_superblock(fs_image, NULL), INVALID_PARAMETER);
     ck_assert_int_eq(write_superblock(NULL, NULL), INVALID_PARAMETER);
 
+    // Cleanup
     fclose(fs_image);
 }
 END_TEST
 
-START_TEST(test_write_superblock_bad_magic)
+START_TEST(write_superblock_should_return_error_when_magic_is_invalid)
 {
+    // Arrange
     FILE *fs_image = create_temp_file(NULL, 0);
     ck_assert_ptr_nonnull(fs_image);
-
     sb->s_magic = 0; // Invalid magic
-    int result = write_superblock(fs_image, sb);
+
+    // Act
+    const int result = write_superblock(fs_image, sb);
+
+    // Assert
     ck_assert_int_eq(result, ERROR);
 
+    // Cleanup
     fclose(fs_image);
 }
 END_TEST
-
 
 Suite *superblock_suite(void)
 {
@@ -218,24 +276,25 @@ Suite *superblock_suite(void)
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
     // Getter tests
-    tcase_add_test(tc_core, test_get_block_size_valid);
-    tcase_add_test(tc_core, test_get_block_size_null);
-    tcase_add_test(tc_core, test_get_fragment_size_valid);
-    tcase_add_test(tc_core, test_get_fragment_size_null);
-    tcase_add_test(tc_core, test_get_block_group_count_valid);
-    tcase_add_test(tc_core, test_get_block_group_count_zero_blocks_per_group);
-    tcase_add_test(tc_core, test_get_block_group_count_null);
+    tcase_add_test(tc_core, get_block_size_should_return_correct_size_when_log_block_size_is_valid);
+    tcase_add_test(tc_core, get_block_size_should_return_zero_when_superblock_is_null);
+    tcase_add_test(tc_core, get_fragment_size_should_return_correct_size_when_log_frag_size_is_valid);
+    tcase_add_test(tc_core, get_fragment_size_should_return_zero_when_superblock_is_null);
+    tcase_add_test(tc_core, get_block_group_count_should_return_correct_count_when_division_is_exact);
+    tcase_add_test(tc_core, get_block_group_count_should_return_correct_count_when_division_has_remainder);
+    tcase_add_test(tc_core, get_block_group_count_should_return_zero_when_blocks_per_group_is_zero);
+    tcase_add_test(tc_core, get_block_group_count_should_return_zero_when_superblock_is_null);
 
     // Read tests
-    tcase_add_test(tc_core, test_read_superblock_valid);
-    tcase_add_test(tc_core, test_read_superblock_null_file);
-    tcase_add_test(tc_core, test_read_superblock_bad_magic);
-    tcase_add_test(tc_core, test_read_superblock_short_file);
+    tcase_add_test(tc_core, read_superblock_should_return_superblock_when_file_is_valid);
+    tcase_add_test(tc_core, read_superblock_should_return_null_when_file_is_null);
+    tcase_add_test(tc_core, read_superblock_should_return_null_when_magic_is_invalid);
+    tcase_add_test(tc_core, read_superblock_should_return_null_when_file_is_too_short);
 
     // Write tests
-    tcase_add_test(tc_core, test_write_superblock_valid);
-    tcase_add_test(tc_core, test_write_superblock_null_args);
-    tcase_add_test(tc_core, test_write_superblock_bad_magic);
+    tcase_add_test(tc_core, write_superblock_should_return_success_when_superblock_is_valid);
+    tcase_add_test(tc_core, write_superblock_should_return_invalid_parameter_when_args_are_null);
+    tcase_add_test(tc_core, write_superblock_should_return_error_when_magic_is_invalid);
 
     suite_add_tcase(s, tc_core);
 

@@ -123,7 +123,7 @@ ext2_group_desc *read_group_descriptor(
         return NULL;
     }
 
-    return SUCCESS;
+    return group_desc;
 }
 
 int write_group_descriptor(
