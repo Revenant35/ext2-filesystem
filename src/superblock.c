@@ -6,8 +6,8 @@
  * filesystem image into memory, write it back, and calculate derived values.
  */
 
-#include "../include/superblock.h"
-#include "../include/globals.h"
+#include "superblock.h"
+#include "globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>

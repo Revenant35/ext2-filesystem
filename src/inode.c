@@ -6,10 +6,10 @@
  * filesystem image into memory and to write a modified inode back to the image.
  */
 
-#include "../include/inode.h"
-#include "../include/superblock.h"
-#include "../include/block_group.h"
-#include "../include/globals.h"
+#include "inode.h"
+#include "superblock.h"
+#include "block_group.h"
+#include "globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/superblock.h"
-#include "../include/block_group.h"
-#include "../include/directory.h"
-#include "../include/globals.h"
+#include "superblock.h"
+#include "block_group.h"
+#include "directory.h"
+#include "globals.h"
 
 #define MAX_CMD_LEN 1024
 #define MAX_ARGS 10

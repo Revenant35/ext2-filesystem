@@ -6,8 +6,8 @@
  * descriptors and the entire Block Group Descriptor Table (BGDT) from an
  * ext2 filesystem image.
  */
-#include "../include/block_group.h"
-#include "../include/globals.h"
+#include "block_group.h"
+#include "globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,8 +1,8 @@
-#include "../include/directory.h"
-#include "../include/globals.h"
-#include "../include/inode.h"
-#include "../include/superblock.h"
-#include "../include/block_group.h"
+#include "directory.h"
+#include "globals.h"
+#include "inode.h"
+#include "superblock.h"
+#include "block_group.h"
 
 #include <check.h>
 #include <stdio.h>

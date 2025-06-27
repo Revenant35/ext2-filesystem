@@ -3,11 +3,11 @@
  * @brief Implements resource allocation functions for the ext2 filesystem.
  */
 
-#include "../include/allocation.h"
-#include "../include/bitmap.h"
-#include "../include/superblock.h"
-#include "../include/block_group.h"
-#include "../include/globals.h"
+#include "allocation.h"
+#include "bitmap.h"
+#include "superblock.h"
+#include "block_group.h"
+#include "globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,8 @@ int allocate_inode(
             block_group_descriptor_table->groups[group_idx].bg_free_inodes_count--;
             superblock->s_free_inodes_count--;
 
-            if (write_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != SUCCESS) {
+            if (write_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) !=
+                SUCCESS) {
                 log_error("Failed to write updated group descriptor for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return ERROR;
@@ -124,7 +125,8 @@ int allocate_block(
             superblock->s_free_blocks_count--;
 
             // Write updated group descriptor and superblock back to disk
-            if (write_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) != 0) {
+            if (write_group_descriptor(file, superblock, group_idx, &block_group_descriptor_table->groups[group_idx]) !=
+                SUCCESS) {
                 log_error("Failed to write updated group descriptor for group %u\n", group_idx);
                 free(bitmap_buffer);
                 return ERROR;
@@ -136,7 +138,8 @@ int allocate_block(
             }
 
             // The first data block is at superblock->s_first_data_block (usually 0 or 1)
-            *new_block_num_out = group_idx * superblock->s_blocks_per_group + superblock->s_first_data_block + free_bit_idx;
+            *new_block_num_out = group_idx * superblock->s_blocks_per_group + superblock->s_first_data_block +
+                                 free_bit_idx;
             free(bitmap_buffer);
             return SUCCESS;
         }

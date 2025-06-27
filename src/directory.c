@@ -3,19 +3,18 @@
  * @brief Implements functions for reading and listing ext2 directory entries.
  */
 
-#include "../include/directory.h"
-#include "../include/inode.h"
-#include "../include/block_group.h"
-#include "../include/bitmap.h"
-#include "../include/globals.h"
+#include "directory.h"
+#include "inode.h"
+#include "block_group.h"
+#include "bitmap.h"
+#include "globals.h"
+#include "allocation.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
-
-#include "../include/allocation.h"
 
 // Define for the number of direct blocks in an inode, typically 12
 #define EXT2_NDIR_BLOCKS 12

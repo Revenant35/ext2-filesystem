@@ -1,5 +1,5 @@
-#include "../include/superblock.h"
-#include "../include/globals.h"
+#include "superblock.h"
+#include "globals.h"
 
 #include <check.h>
 #include <stdio.h>

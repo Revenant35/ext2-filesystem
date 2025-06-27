@@ -80,8 +80,7 @@ void teardown(void) {
     fclose(fs_image);
 }
 
-START_TEST(allocate_inode_should_succeed_when_inodes_are_available)
-{
+START_TEST(allocate_inode_should_succeed_when_inodes_are_available) {
     // Arrange is in setup
     uint32_t new_inode_num;
 
@@ -103,10 +102,10 @@ START_TEST(allocate_inode_should_succeed_when_inodes_are_available)
     find_first_free_bit(updated_bitmap, sb->s_inodes_per_group, &first_free);
     ck_assert_uint_eq(first_free, 1);
 }
+
 END_TEST
 
-START_TEST(allocate_block_should_succeed_when_blocks_are_available)
-{
+START_TEST(allocate_block_should_succeed_when_blocks_are_available) {
     // Arrange is in setup
     uint32_t new_block_num;
 
@@ -121,10 +120,10 @@ START_TEST(allocate_block_should_succeed_when_blocks_are_available)
     ck_assert_uint_eq(sb->s_free_blocks_count, 31);
     ck_assert_uint_eq(bgdt->groups[0].bg_free_blocks_count, 15);
 }
+
 END_TEST
 
-START_TEST(allocate_inode_should_fail_when_no_inodes_are_available)
-{
+START_TEST(allocate_inode_should_fail_when_no_inodes_are_available) {
     // Arrange
     sb->s_free_inodes_count = 0;
     bgdt->groups[0].bg_free_inodes_count = 0;
@@ -137,6 +136,7 @@ START_TEST(allocate_inode_should_fail_when_no_inodes_are_available)
     // Assert
     ck_assert_int_eq(result, ERROR);
 }
+
 END_TEST
 
 Suite *allocation_suite(void) {

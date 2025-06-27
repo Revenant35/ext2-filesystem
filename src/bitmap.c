@@ -3,9 +3,9 @@
  * @brief Implements functions for reading, writing, and manipulating ext2 bitmaps.
  */
 
-#include "../include/bitmap.h"
-#include "../include/superblock.h"
-#include "../include/globals.h"
+#include "bitmap.h"
+#include "superblock.h"
+#include "globals.h"
 
 #include <stdio.h>
 

@@ -1,6 +1,6 @@
-#include "../include/block_group.h"
-#include "../include/globals.h"
-#include "../include/superblock.h"
+#include "block_group.h"
+#include "globals.h"
+#include "superblock.h"
 
 #include <check.h>
 #include <stdio.h>
