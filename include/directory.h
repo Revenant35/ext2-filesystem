@@ -125,4 +125,25 @@ uint32_t get_inode_for_path(
     const char *path
 );
 
+/**
+ * @brief Finds a directory entry by name within a directory inode.
+ *
+ * This function reads the specified directory inode and searches for an entry
+ * with the given name. It returns the inode number of the found entry or 0 if not found.
+ *
+ * @param file Pointer to the filesystem image file.
+ * @param superblock Pointer to the superblock.
+ * @param bgdt Pointer to the block group descriptor table.
+ * @param dir_inode_num The inode number of the directory to search in.
+ * @param entry_name The name of the entry to find.
+ * @return The inode number of the found entry, or 0 if not found or an error occurs.
+ */
+uint32_t find_entry_in_directory(
+    FILE *file,
+    const ext2_super_block *superblock,
+    const ext2_group_desc *bgdt,
+    uint32_t dir_inode_num,
+    const char *entry_name
+);
+
 #endif //DIRECTORY_H

@@ -254,7 +254,6 @@ int add_directory_entry(
     return SUCCESS;
 }
 
-// Helper function to find an entry in a single directory.
 uint32_t find_entry_in_directory(FILE *file, const ext2_super_block *superblock, const ext2_group_desc *bgdt, uint32_t dir_inode_num, const char *entry_name) {
     ext2_inode dir_inode;
     if (read_inode(file, superblock, bgdt, dir_inode_num, &dir_inode) != 0) {
