@@ -1,11 +1,11 @@
 /**
- * @file Bitmap.c
+ * @file bitmap.c
  * @brief Implements functions for reading, writing, and manipulating ext2 bitmaps.
  */
 
-#include "Bitmap.h"
-#include "Superblock.h"
-#include "globals.h"
+#include "../include/bitmap.h"
+#include "../include/superblock.h"
+#include "../include/globals.h"
 
 #include <stdio.h>
 

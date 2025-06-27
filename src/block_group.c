@@ -1,13 +1,13 @@
 /**
- * @file BlockGroup.c
+ * @file block_group.c
  * @brief Implements functions for reading ext2 block group descriptors.
  *
  * This file contains the logic to locate and read both individual block group
  * descriptors and the entire Block Group Descriptor Table (BGDT) from an
  * ext2 filesystem image.
  */
-#include "BlockGroup.h"
-#include "globals.h"
+#include "../include/block_group.h"
+#include "../include/globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,14 +94,14 @@ ext2_group_desc *read_group_descriptor(
 ) {
     if (file == NULL || superblock == NULL) {
         log_error("Error: NULL pointer passed to read_single_group_descriptor.\n");
-        return nullptr;
+        return NULL;
     }
 
     const off_t descriptor_offset = get_descriptor_offset(superblock, group_index);
 
     if (fseeko(file, descriptor_offset, SEEK_SET) != 0) {
         log_error("Error seeking to group descriptor");
-        return nullptr;
+        return NULL;
     }
 
     ext2_group_desc *group_desc = malloc(sizeof(ext2_group_desc));
@@ -110,17 +110,17 @@ ext2_group_desc *read_group_descriptor(
         if (feof(file)) {
             log_error("Error reading group descriptor: unexpected end of file for group %u.\n", group_index);
             free(group_desc);
-            return nullptr;
+            return NULL;
         }
 
         if (ferror(file)) {
             log_error("Error reading group descriptor");
             free(group_desc);
-            return nullptr;
+            return NULL;
         }
 
         free(group_desc);
-        return nullptr;
+        return NULL;
     }
 
     return SUCCESS;
@@ -161,19 +161,19 @@ ext2_group_desc_table *read_group_descriptor_table(
 ) {
     if (file == NULL || superblock == NULL) {
         log_error("Error: NULL pointer passed to read_all_group_descriptors.\n");
-        return nullptr;
+        return NULL;
     }
 
     const uint32_t num_groups = count_block_groups(superblock);
     if (num_groups == 0) {
         log_error("Error: Filesystem has 0 block groups according to superblock.\n");
-        return nullptr;
+        return NULL;
     }
 
     ext2_group_desc *block_group_descriptors = malloc(num_groups * sizeof(ext2_group_desc));
     if (block_group_descriptors == NULL) {
         log_error("Error allocating memory for BLOCK_GROUP_DESCRIPTOR_TABLE table");
-        return nullptr;
+        return NULL;
     }
 
     memset(block_group_descriptors, 0, num_groups * sizeof(ext2_group_desc));
@@ -183,7 +183,7 @@ ext2_group_desc_table *read_group_descriptor_table(
     if (fseeko(file, bgdt_start_offset, SEEK_SET) != 0) {
         log_error("Error seeking to start of BLOCK_GROUP_DESCRIPTOR_TABLE");
         free(block_group_descriptors);
-        return nullptr;
+        return NULL;
     }
 
     const size_t items_read = fread(block_group_descriptors, sizeof(ext2_group_desc), num_groups, file);
@@ -192,24 +192,24 @@ ext2_group_desc_table *read_group_descriptor_table(
             log_error("Error reading BLOCK_GROUP_DESCRIPTOR_TABLE: unexpected end of file. Expected %u groups, read %zu.\n", num_groups,
                     items_read);
             free(block_group_descriptors);
-            return nullptr;
+            return NULL;
         }
 
         if (ferror(file)) {
             log_error("Error reading BLOCK_GROUP_DESCRIPTOR_TABLE");
             free(block_group_descriptors);
-            return nullptr;
+            return NULL;
         }
 
         free(block_group_descriptors);
-        return nullptr;
+        return NULL;
     }
 
     ext2_group_desc_table *table = malloc(sizeof(ext2_group_desc_table));
     if (table == NULL) {
         log_error("Error allocating memory for BLOCK_GROUP_DESCRIPTOR_TABLE table");
         free(block_group_descriptors);
-        return nullptr;
+        return NULL;
     }
 
     table->groups = block_group_descriptors;

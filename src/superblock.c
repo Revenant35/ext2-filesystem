@@ -1,28 +1,28 @@
 /**
- * @file Superblock.c
+ * @file superblock.c
  * @brief Implements functions for reading, writing, and interpreting the ext2 superblock.
  *
  * These functions handle the I/O operations to load the superblock from a
  * filesystem image into memory, write it back, and calculate derived values.
  */
+
+#include "../include/superblock.h"
+#include "../include/globals.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "Superblock.h"
-
-#include "globals.h"
-
 
 ext2_super_block *read_superblock(
     FILE *file
 ) {
     if (file == NULL) {
         log_error("Error: read_superblock received a NULL file pointer.\n");
-        return nullptr;
+        return NULL;
     }
 
     if (fseek(file, EXT2_SUPERBLOCK_OFFSET, SEEK_SET) != 0) {
         log_error("Error seeking to superblock");
-        return nullptr;
+        return NULL;
     }
 
     ext2_super_block *superblock = malloc(sizeof(ext2_super_block));
@@ -34,14 +34,14 @@ ext2_super_block *read_superblock(
             log_error("Error reading superblock");
         }
         free(superblock);
-        return nullptr;
+        return NULL;
     }
 
     if (superblock->s_magic != EXT2_SUPER_MAGIC) {
         log_error("Error: Not an ext2 filesystem (magic number mismatch: expected 0x%X, got 0x%X)\n",
                 EXT2_SUPER_MAGIC, superblock->s_magic);
         free(superblock);
-        return nullptr;
+        return NULL;
     }
 
     return superblock;

@@ -1,8 +1,8 @@
 #ifndef INODE_H
 #define INODE_H
 
-#include "Superblock.h"
-#include "BlockGroup.h"
+#include "superblock.h"
+#include "block_group.h"
 
 #include <stdint.h>
 #include <stdio.h>

@@ -1,7 +1,7 @@
 #ifndef C_EXT2_FILESYSTEM_BITMAP_H
 #define C_EXT2_FILESYSTEM_BITMAP_H
 
-#include "Superblock.h"
+#include "superblock.h"
 
 #include <stdint.h>
 #include <stdio.h>

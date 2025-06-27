@@ -1,15 +1,15 @@
 /**
- * @file Inode.c
+ * @file inode.c
  * @brief Implements functions for reading and writing ext2 inodes.
  *
  * These functions handle the I/O operations to load an inode from a
  * filesystem image into memory and to write a modified inode back to the image.
  */
 
-#include "Inode.h"
-#include "Superblock.h"
-#include "BlockGroup.h"
-#include "globals.h"
+#include "../include/inode.h"
+#include "../include/superblock.h"
+#include "../include/block_group.h"
+#include "../include/globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>

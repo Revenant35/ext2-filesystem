@@ -1,13 +1,13 @@
 /**
- * @file Allocation.c
+ * @file allocation.c
  * @brief Implements resource allocation functions for the ext2 filesystem.
  */
 
-#include "Allocation.h"
-#include "Bitmap.h"
-#include "Superblock.h"
-#include "BlockGroup.h"
-#include "globals.h"
+#include "../include/allocation.h"
+#include "../include/bitmap.h"
+#include "../include/superblock.h"
+#include "../include/block_group.h"
+#include "../include/globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>

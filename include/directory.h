@@ -1,9 +1,9 @@
 #ifndef DIRECTORY_H
 #define DIRECTORY_H
 
-#include "Superblock.h"
-#include "Inode.h"
-#include "BlockGroup.h"
+#include "superblock.h"
+#include "inode.h"
+#include "block_group.h"
 
 #include <stdint.h>
 #include <stdio.h>

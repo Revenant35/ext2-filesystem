@@ -10,7 +10,7 @@
 #ifndef BLOCK_GROUP_H
 #define BLOCK_GROUP_H
 
-#include "Superblock.h"
+#include "superblock.h"
 
 #include <stdint.h>
 #include <stdio.h>
