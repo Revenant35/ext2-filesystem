@@ -5,6 +5,7 @@ add_library(ext2_filesystem STATIC
         directory.c
         bitmap.c
         allocation.c
+        filesystem.c
 )
 
 target_include_directories(ext2_filesystem PUBLIC "${PROJECT_SOURCE_DIR}/include")
