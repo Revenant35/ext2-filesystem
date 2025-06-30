@@ -3,6 +3,7 @@
  * @brief Implements functions for reading and listing ext2 directory entries.
  */
 
+#include "superblock.h"
 #include "directory.h"
 #include "inode.h"
 #include "block_group.h"

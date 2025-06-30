@@ -10,41 +10,10 @@
 #ifndef BLOCK_GROUP_H
 #define BLOCK_GROUP_H
 
-#include "superblock.h"
-
 #include <stdint.h>
 #include <stdio.h>
 
-/**
- * @brief The ext2 block group descriptor structure (typically 32 bytes).
- *
- * This structure holds metadata for a single block group within the filesystem.
- * An array of these descriptors, known as the Block Group Descriptor Table (BGDT),
- * follows the superblock.
- */
-typedef struct {
-    uint32_t bg_block_bitmap;         //!< Block ID of the block usage bitmap for this group.
-    uint32_t bg_inode_bitmap;         //!< Block ID of the inode usage bitmap for this group.
-    uint32_t bg_inode_table;          //!< Block ID of the starting block of the inode table for this group.
-    uint16_t bg_free_blocks_count;    //!< Number of free blocks in this group.
-    uint16_t bg_free_inodes_count;    //!< Number of free inodes in this group.
-    uint16_t bg_used_dirs_count;      //!< Number of directories in this group.
-    uint16_t bg_flags;                //!< Block group flags (see EXT2_BG_* defines).
-    uint32_t bg_reserved1;            //!< Reserved for future use. (Was bg_exclude_bitmap_lo in ext4 for snapshot feature)
-    uint16_t bg_reserved2;            //!< Reserved for future use. (Was bg_block_bitmap_csum_lo in ext4 for checksumming)
-    uint16_t bg_reserved3;            //!< Reserved for future use. (Was bg_inode_bitmap_csum_lo in ext4 for checksumming)
-    uint16_t bg_itable_unused;        //!< Number of unused inodes in this group (if INODE_ZEROED flag is set).
-    uint16_t bg_checksum;             //!< Group descriptor checksum (if EXT2_FEATURE_RO_COMPAT_GDT_CSUM is set in superblock).
-} ext2_group_desc;
-
-typedef struct {
-    ext2_group_desc *groups;
-    uint32_t groups_count;
-} ext2_group_desc_table;
-
-#define EXT2_BG_INODE_UNINIT    0x0001  // Inode table and bitmap are not initialized
-#define EXT2_BG_BLOCK_UNINIT    0x0002  // Block bitmap is not initialized
-#define EXT2_BG_INODE_ZEROED    0x0004  // Inode table is zeroed
+#include "types.h"
 
 /**
  * @brief Calculates the total number of block groups in the filesystem.

@@ -1,10 +1,10 @@
 #ifndef C_EXT2_FILESYSTEM_BITMAP_H
 #define C_EXT2_FILESYSTEM_BITMAP_H
 
-#include "superblock.h"
-
 #include <stdint.h>
 #include <stdio.h>
+
+#include "types.h"
 
 /**
  * @brief Reads a bitmap from a specified block into a buffer.

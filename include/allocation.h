@@ -1,12 +1,10 @@
 #ifndef ALLOCATION_H
 #define ALLOCATION_H
 
-#include "superblock.h"
-#include "block_group.h"
-
 #include <stdint.h>
 #include <stdio.h>
 
+#include "types.h"
 
 /**
  * @brief Allocates a new inode in the filesystem.

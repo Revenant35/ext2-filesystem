@@ -6,6 +6,7 @@
  * descriptors and the entire Block Group Descriptor Table (BGDT) from an
  * ext2 filesystem image.
  */
+#include "superblock.h"
 #include "block_group.h"
 #include "globals.h"
 

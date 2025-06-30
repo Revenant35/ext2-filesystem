@@ -1,7 +1,3 @@
-//
-// Created by Zach Brown on 6/18/25.
-//
-
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
